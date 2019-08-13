@@ -4,7 +4,7 @@ import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.widget.RemoteViews
-import java.sql.Time
+import java.util.*
 
 /**
  * Implementation of App Widget functionality.
@@ -33,7 +33,8 @@ class NewAppWidget : AppWidgetProvider() {
             context: Context, appWidgetManager: AppWidgetManager,
             appWidgetId: Int
         ) {
-            val widgetText = context.getString(R.string.appwidget_text)
+            Date().toString()
+            val widgetText =  Date().toString()
             // Construct the RemoteViews object
             val views = RemoteViews(context.packageName, R.layout.new_app_widget)
             views.setTextViewText(R.id.appwidget_text, widgetText)

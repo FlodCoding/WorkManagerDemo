@@ -1,13 +1,17 @@
 package com.coassets.android.workmanagertest
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import com.coassets.android.workmanagertest.service.DeskService
 import kotlinx.android.synthetic.main.activity_main.*
 import java.util.concurrent.TimeUnit
+
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -17,10 +21,13 @@ class MainActivity : AppCompatActivity() {
         setSupportActionBar(toolbar)
 
         fab.setOnClickListener { view ->
-            addNewWork()
+            //addNewWork()
+            startForegroundService(Intent(this, DeskService::class.java))
           /*  Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
                 .setAction("Action", null).show()*/
         }
+
+       // startService(Intent(this, DeskService::class.java))
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
