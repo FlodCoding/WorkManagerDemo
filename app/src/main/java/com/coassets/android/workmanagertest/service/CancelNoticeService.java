@@ -8,7 +8,6 @@ import android.os.Build;
 import android.os.IBinder;
 import android.os.SystemClock;
 import androidx.annotation.Nullable;
-import com.coassets.android.workmanagertest.R;
 
 /**
  * SimpleDes:
@@ -27,14 +26,13 @@ public class CancelNoticeService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.JELLY_BEAN_MR2) {
             Notification.Builder builder = new Notification.Builder(this);
-            builder.setSmallIcon(R.mipmap.ic_launcher);
             startForeground(DeskService.NOTICE_ID, builder.build());
             // 开启一条线程，去移除DaemonService弹出的通知
             new Thread(new Runnable() {
                 @Override
                 public void run() {
                     // 延迟1s
-                    SystemClock.sleep(1000);
+                    SystemClock.sleep(3000);
                     // 取消CancelNoticeService的前台
                     stopForeground(true);
                     // 移除DaemonService弹出的通知

@@ -53,8 +53,8 @@ public class DeskService extends Service {
             startForeground(NOTICE_ID, builder.build());
             // 如果觉得常驻通知栏体验不好
             // 可以通过启动CancelNoticeService，将通知移除，oom_adj值不变
-            //Intent intent = new Intent(this, CancelNoticeService.class);
-            //startService(intent);
+            Intent intent = new Intent(this, CancelNoticeService.class);
+            startService(intent);
 
 
             TimerTask timerTask = new TimerTask() {

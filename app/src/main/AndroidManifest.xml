@@ -4,6 +4,8 @@
 
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
+
+
     <application
             android:persistent="true"
             android:allowBackup="true"
@@ -34,6 +36,9 @@
         </activity>
         <service android:name=".service.CancelNoticeService"/>
         <service android:name=".service.DeskService"/>
+
+        <service android:name=".keepalive.job.AliveJobService"
+                 android:permission="android.permission.BIND_JOB_SERVICE" />
     </application>
 
 </manifest>
