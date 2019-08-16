@@ -9,6 +9,7 @@ import android.provider.CalendarContract
 import android.provider.CalendarContract.Calendars
 import android.view.Menu
 import android.view.MenuItem
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
@@ -39,7 +40,10 @@ class MainActivity : AppCompatActivity() {
             //startJobService()
 
             // startKeepLive()
-            createCalendar()
+           // createCalendar()
+
+            makeStatusNotification("shit",application)
+            Toast.makeText(applicationContext, "创建", Toast.LENGTH_SHORT).show()
         }
 
 
