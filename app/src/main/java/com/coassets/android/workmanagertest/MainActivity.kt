@@ -1,5 +1,6 @@
 package com.coassets.android.workmanagertest
 
+import android.content.ComponentName
 import android.content.ContentValues
 import android.content.Intent
 import android.content.IntentFilter
@@ -25,12 +26,15 @@ import java.util.concurrent.TimeUnit
 
 
 
+
+
 class MainActivity : AppCompatActivity() {
-    var callTime = 0;
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         setSupportActionBar(toolbar)
+
+
 
         fab.setOnClickListener { view ->
             //addNewWork()
@@ -42,8 +46,15 @@ class MainActivity : AppCompatActivity() {
             // startKeepLive()
            // createCalendar()
 
-            makeStatusNotification("shit",application)
+            //makeStatusNotification("shit",application)
             Toast.makeText(applicationContext, "创建", Toast.LENGTH_SHORT).show()
+           // createCalendar()
+
+            val comp = ComponentName("com.coassets.android.browserfiltertest", "com.coassets.android.browserfiltertest.MainActivity")
+            val alarms = Intent().setComponent(comp)
+            alarms.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+            startActivity(alarms)
         }
 
 
@@ -120,11 +131,11 @@ class MainActivity : AppCompatActivity() {
         contentValues.put(CalendarContract.Events.EVENT_TIMEZONE, TimeZone.getDefault().id)
         contentValues.put(CalendarContract.Events.CALENDAR_ID, calID);
         contentValues.put(CalendarContract.Events.TITLE, "Jazzercise")
-
+        contentValues.put(CalendarContract.Events.RRULE, "FREQ=WEEKLY;COUNT=10;WKST=SU")
         contentValues.put(CalendarContract.Events.DESCRIPTION, "丢雷楼某")
 
         val cr = contentResolver
-        //val uri = cr.insert(Events.CONTENT_URI, contentValues)
+        val uri = cr.insert(CalendarContract.Events.CONTENT_URI, contentValues)
 
 
 
