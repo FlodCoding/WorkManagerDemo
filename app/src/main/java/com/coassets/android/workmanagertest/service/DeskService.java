@@ -41,12 +41,11 @@ public class DeskService extends Service {
         //如果API大于18，需要弹出一个可见通知
         if (Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             Log.d(TAG, "DaemonService---->onCreate被调用，启动前台service");
-            Notification.Builder builder = null;
             NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
             NotificationChannel channel = new NotificationChannel("12", "app", NotificationManager.IMPORTANCE_HIGH);
             manager.createNotificationChannel(channel);
 
-            builder = new Notification.Builder(this, "12");
+            Notification.Builder builder = new Notification.Builder(this, "12");
 
             builder.setContentTitle("KeepAppAlive");
             builder.setContentText("DaemonService is runing...");
