@@ -13,6 +13,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.coassets.android.workmanagertest.service.CalendarReceiver
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.content_main.*
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -44,7 +45,12 @@ class MainActivity : AppCompatActivity() {
             //alarms.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
             //startActivity(alarms)
-            createCalendar()
+            //createCalendar()
+
+            val draw = getDrawable(R.drawable.test)
+            draw!!.setBounds(0,0,60,60)
+            text.setCompoundDrawables(draw, null, null, null)
+
         }
 
 
@@ -52,6 +58,9 @@ class MainActivity : AppCompatActivity() {
         filter.addDataScheme("content");
         registerReceiver(CalendarReceiver(), filter)
         // startService(Intent(this, DeskService::class.java))
+
+
+
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -89,13 +98,13 @@ class MainActivity : AppCompatActivity() {
         val beginTime = Calendar.getInstance()
         beginTime.set(2019, 7, 20, 17, 10, 0)
 
-        Log.d("Main",beginTime.time.toLocaleString())
+        Log.d("Main", beginTime.time.toLocaleString())
         startMillis = beginTime.timeInMillis
         val endTime = Calendar.getInstance()
         endTime.set(2019, 8, 21, 3, 0, 0)
         endMillis = endTime.timeInMillis
 
-        Log.d("Main",endTime.time.toLocaleString())
+        Log.d("Main", endTime.time.toLocaleString())
 
 
 
@@ -112,12 +121,11 @@ class MainActivity : AppCompatActivity() {
         val uri = cr.insert(CalendarContract.Events.CONTENT_URI, contentValues)
 
 
-
     }
 
 
     fun startService() {
-       // startForegroundService(Intent(this, ForegroundService::class.java))
+        // startForegroundService(Intent(this, ForegroundService::class.java))
     }
 
 }
