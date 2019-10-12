@@ -1,7 +1,6 @@
 package com.coassets.android.workmanagertest
 
 import android.content.ContentValues
-import android.content.IntentFilter
 import android.os.Bundle
 import android.provider.CalendarContract
 import android.util.Log
@@ -11,9 +10,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
-import com.coassets.android.workmanagertest.service.CalendarReceiver
 import kotlinx.android.synthetic.main.activity_main.*
-import kotlinx.android.synthetic.main.content_main.*
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -45,20 +42,14 @@ class MainActivity : AppCompatActivity() {
             //alarms.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
             //startActivity(alarms)
-            //createCalendar()
 
-            val draw = getDrawable(R.drawable.test)
-            draw!!.setBounds(0,0,60,60)
-            text.setCompoundDrawables(draw, null, null, null)
-
+            // createCalendar()
+            //createNewCalendar()
+            queryCalendarAccount()
         }
 
 
-        val filter = IntentFilter(CalendarContract.ACTION_EVENT_REMINDER)
-        filter.addDataScheme("content");
-        registerReceiver(CalendarReceiver(), filter)
         // startService(Intent(this, DeskService::class.java))
-
 
 
     }
@@ -90,18 +81,44 @@ class MainActivity : AppCompatActivity() {
     }
 
 
+    fun queryCalendarAccount() {
+        val selection: String = CalendarContract.Calendars.ACCOUNT_NAME
+        val cursor = contentResolver.query(
+            CalendarContract.Calendars.CONTENT_URI,
+            arrayOf(CalendarContract.Calendars.ACCOUNT_NAME),
+            null,
+            null,
+            null
+        )
+
+        cursor ?: return
+
+        while (cursor.moveToNext()) {
+            
+            //var stringBuilder = StringBuilder()
+           /* for (index in 0 until cursor.columnCount) {
+                stringBuilder.append()
+            }*/
+
+            print(cursor.extras.toString())
+
+        }
+        cursor.close()
+    }
+
+
     fun createCalendar() {
         val contentValues = ContentValues()
 
         var startMillis: Long = 0
         var endMillis: Long = 0
         val beginTime = Calendar.getInstance()
-        beginTime.set(2019, 7, 20, 17, 10, 0)
+        beginTime.set(2019, 9, 12, 17, 10, 0)
 
         Log.d("Main", beginTime.time.toLocaleString())
         startMillis = beginTime.timeInMillis
         val endTime = Calendar.getInstance()
-        endTime.set(2019, 8, 21, 3, 0, 0)
+        endTime.set(2019, 9, 12, 17, 20, 0)
         endMillis = endTime.timeInMillis
 
         Log.d("Main", endTime.time.toLocaleString())
@@ -109,23 +126,63 @@ class MainActivity : AppCompatActivity() {
 
 
         contentValues.put(CalendarContract.Events.DTSTART, startMillis)
-        contentValues.put(CalendarContract.Events.DTEND, endMillis)
+        contentValues.put(CalendarContract.Events.DTEND, startMillis + 600000)
         contentValues.put(CalendarContract.Events.CALENDAR_ID, 1)
         contentValues.put(CalendarContract.Events.EVENT_TIMEZONE, TimeZone.getDefault().id)
         contentValues.put(CalendarContract.Events.TITLE, "任务")
         contentValues.put(CalendarContract.Events.DESCRIPTION, "丢雷楼某")
-        contentValues.put(CalendarContract.Events.RRULE, "FREQ=WEEKLY;WKST=SU;BYDAY=SU,MO;")
+        //contentValues.put(CalendarContract.Events.RRULE, "FREQ=WEEKLY;WKST=SU;BYDAY=SU,MO;")
 
 
         val cr = contentResolver
-        val uri = cr.insert(CalendarContract.Events.CONTENT_URI, contentValues)
+        val eventId = cr.insert(CalendarContract.Events.CONTENT_URI, contentValues)?.lastPathSegment
+
+
+        val contentValues2 = ContentValues()
+
+        contentValues2.put(CalendarContract.Reminders.EVENT_ID, eventId)
+        contentValues2.put(
+            CalendarContract.Reminders.METHOD,
+            CalendarContract.Reminders.METHOD_ALERT
+        )
+        cr.insert(CalendarContract.Reminders.CONTENT_URI, contentValues2)
 
 
     }
 
 
-    fun startService() {
-        // startForegroundService(Intent(this, ForegroundService::class.java))
+    fun createNewCalendar() {
+        val contentValues = ContentValues()
+        contentValues.put(CalendarContract.Calendars.ACCOUNT_NAME, "ACCOUNT_NAME")
+        contentValues.put(CalendarContract.Calendars.CALENDAR_DISPLAY_NAME, "DISPLAY_NAME")
+        contentValues.put(CalendarContract.Calendars.NAME, "NAME")
+        contentValues.put(
+            CalendarContract.Calendars.ACCOUNT_TYPE,
+            CalendarContract.ACCOUNT_TYPE_LOCAL
+        )
+        contentValues.put(CalendarContract.Calendars.OWNER_ACCOUNT, "ACCOUNT_NAME")
+        contentValues.put(CalendarContract.Calendars.VISIBLE, 1)
+        contentValues.put(CalendarContract.Calendars.SYNC_EVENTS, 1)
+        contentValues.put(
+            CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL,
+            CalendarContract.Calendars.CAL_ACCESS_OWNER
+        )
+        contentValues.put(CalendarContract.Calendars.DIRTY, 1)
+
+        var uri = CalendarContract.Calendars.CONTENT_URI
+        uri = uri.buildUpon()
+            .appendQueryParameter(CalendarContract.CALLER_IS_SYNCADAPTER, "true")
+            .appendQueryParameter(CalendarContract.Calendars.ACCOUNT_NAME, "ACCOUNT_NAME")
+            .appendQueryParameter(
+                CalendarContract.Calendars.ACCOUNT_TYPE,
+                CalendarContract.ACCOUNT_TYPE_LOCAL
+            )
+            .build()
+
+
+        val id = contentResolver.insert(uri, contentValues)
+
     }
+
 
 }
