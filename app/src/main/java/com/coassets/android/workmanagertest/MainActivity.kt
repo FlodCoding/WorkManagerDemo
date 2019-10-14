@@ -13,6 +13,7 @@ import androidx.work.WorkManager
 import kotlinx.android.synthetic.main.activity_main.*
 import java.util.*
 import java.util.concurrent.TimeUnit
+import kotlin.collections.ArrayList
 
 
 class MainActivity : AppCompatActivity() {
@@ -44,8 +45,27 @@ class MainActivity : AppCompatActivity() {
             //startActivity(alarms)
 
             // createCalendar()
-            //createNewCalendar()
-            queryCalendarAccount()
+            //createCalendarAccount()
+
+            val appName = getString(R.string.app_name)
+
+            var calendarAccountId = getCalendarAccountByName(appName)
+            if (calendarAccountId.isEmpty()) {
+                val id = createCalendarAccount(appName, "${appName}日历触发")
+                if (id != -1) {
+                    calendarAccountId.add(id)
+                }
+            }
+            if (calendarAccountId.isNotEmpty()) {
+                createCalendar(calendarAccountId[0])
+            }
+
+            // deleteCalendarAccountByName(appName)
+
+            //val calendarAccountId = createCalendarAccount(appName)
+            //deleteCalendarAccountByName("DISPLAY_NAME")
+
+            // createCalendar()
         }
 
 
@@ -53,6 +73,7 @@ class MainActivity : AppCompatActivity() {
 
 
     }
+
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -81,33 +102,29 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    fun queryCalendarAccount() {
-        val selection: String = CalendarContract.Calendars.ACCOUNT_NAME
+    private fun getCalendarAccountByName(accountName: String): ArrayList<Int> {
         val cursor = contentResolver.query(
             CalendarContract.Calendars.CONTENT_URI,
-            arrayOf(CalendarContract.Calendars.ACCOUNT_NAME),
-            null,
-            null,
+            arrayOf(CalendarContract.Calendars._ID, CalendarContract.Calendars.ACCOUNT_NAME),
+            "${CalendarContract.Calendars.ACCOUNT_NAME} = ?",
+            arrayOf(accountName),
             null
         )
 
-        cursor ?: return
+        val ids = ArrayList<Int>()
 
-        while (cursor.moveToNext()) {
-            
-            //var stringBuilder = StringBuilder()
-           /* for (index in 0 until cursor.columnCount) {
-                stringBuilder.append()
-            }*/
-
-            print(cursor.extras.toString())
-
+        if (cursor != null && cursor.count > 0) {
+            while (cursor.moveToNext()) {
+                ids.add(cursor.getInt(0))
+            }
+            cursor.close()
         }
-        cursor.close()
+        return ids
+
     }
 
 
-    fun createCalendar() {
+    fun createCalendar(CalendarId: Int) {
         val contentValues = ContentValues()
 
         var startMillis: Long = 0
@@ -127,7 +144,7 @@ class MainActivity : AppCompatActivity() {
 
         contentValues.put(CalendarContract.Events.DTSTART, startMillis)
         contentValues.put(CalendarContract.Events.DTEND, startMillis + 600000)
-        contentValues.put(CalendarContract.Events.CALENDAR_ID, 1)
+        contentValues.put(CalendarContract.Events.CALENDAR_ID, CalendarId)
         contentValues.put(CalendarContract.Events.EVENT_TIMEZONE, TimeZone.getDefault().id)
         contentValues.put(CalendarContract.Events.TITLE, "任务")
         contentValues.put(CalendarContract.Events.DESCRIPTION, "丢雷楼某")
@@ -146,42 +163,38 @@ class MainActivity : AppCompatActivity() {
             CalendarContract.Reminders.METHOD_ALERT
         )
         cr.insert(CalendarContract.Reminders.CONTENT_URI, contentValues2)
-
-
     }
 
 
-    fun createNewCalendar() {
+    private fun createCalendarAccount(accountName: String, displayName: String): Int {
         val contentValues = ContentValues()
-        contentValues.put(CalendarContract.Calendars.ACCOUNT_NAME, "ACCOUNT_NAME")
-        contentValues.put(CalendarContract.Calendars.CALENDAR_DISPLAY_NAME, "DISPLAY_NAME")
-        contentValues.put(CalendarContract.Calendars.NAME, "NAME")
-        contentValues.put(
-            CalendarContract.Calendars.ACCOUNT_TYPE,
-            CalendarContract.ACCOUNT_TYPE_LOCAL
-        )
-        contentValues.put(CalendarContract.Calendars.OWNER_ACCOUNT, "ACCOUNT_NAME")
-        contentValues.put(CalendarContract.Calendars.VISIBLE, 1)
+        contentValues.put(CalendarContract.Calendars.ACCOUNT_NAME, accountName)
+        contentValues.put(CalendarContract.Calendars.OWNER_ACCOUNT, accountName)
+        contentValues.put(CalendarContract.Calendars.CALENDAR_DISPLAY_NAME, displayName)
         contentValues.put(CalendarContract.Calendars.SYNC_EVENTS, 1)
-        contentValues.put(
-            CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL,
-            CalendarContract.Calendars.CAL_ACCESS_OWNER
-        )
-        contentValues.put(CalendarContract.Calendars.DIRTY, 1)
+        contentValues.put(CalendarContract.Calendars.VISIBLE, 1)
+        @Suppress("DEPRECATION")
+        contentValues.put(CalendarContract.Calendars.CALENDAR_COLOR, resources.getColor(R.color.colorPrimary))
+        contentValues.put(CalendarContract.Calendars.ACCOUNT_TYPE, CalendarContract.ACCOUNT_TYPE_LOCAL)
+        contentValues.put(CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL, CalendarContract.Calendars.CAL_ACCESS_OWNER)
 
         var uri = CalendarContract.Calendars.CONTENT_URI
+
         uri = uri.buildUpon()
             .appendQueryParameter(CalendarContract.CALLER_IS_SYNCADAPTER, "true")
-            .appendQueryParameter(CalendarContract.Calendars.ACCOUNT_NAME, "ACCOUNT_NAME")
-            .appendQueryParameter(
-                CalendarContract.Calendars.ACCOUNT_TYPE,
-                CalendarContract.ACCOUNT_TYPE_LOCAL
-            )
+            .appendQueryParameter(CalendarContract.Calendars.ACCOUNT_NAME, accountName)
+            .appendQueryParameter(CalendarContract.Calendars.ACCOUNT_TYPE, CalendarContract.ACCOUNT_TYPE_LOCAL)
             .build()
 
+        return contentResolver.insert(uri, contentValues)?.lastPathSegment?.toInt() ?: return -1
+    }
 
-        val id = contentResolver.insert(uri, contentValues)
-
+    private fun deleteCalendarAccountByName(accountName: String): Boolean {
+        return contentResolver.delete(
+            CalendarContract.Calendars.CONTENT_URI,
+            "${CalendarContract.Calendars.ACCOUNT_NAME} = ?",
+            arrayOf(accountName)
+        ) > 0
     }
 
 
