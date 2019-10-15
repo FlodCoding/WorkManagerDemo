@@ -47,18 +47,18 @@ class MainActivity : AppCompatActivity() {
             // createCalendar()
             //createCalendarAccount()
 
-            val appName = getString(R.string.app_name)
+            /* val appName = getString(R.string.app_name)
 
-            var calendarAccountId = getCalendarAccountByName(appName)
-            if (calendarAccountId.isEmpty()) {
-                val id = createCalendarAccount(appName, "${appName}日历触发")
-                if (id != -1) {
-                    calendarAccountId.add(id)
-                }
-            }
-            if (calendarAccountId.isNotEmpty()) {
-                createCalendar(calendarAccountId[0])
-            }
+             var calendarAccountId = getCalendarAccountByName(appName)
+             if (calendarAccountId.isEmpty()) {
+                 val id = createCalendarAccount(appName, "${appName}日历触发")
+                 if (id != -1) {
+                     calendarAccountId.add(id)
+                 }
+             }
+             if (calendarAccountId.isNotEmpty()) {
+                 createCalendar(calendarAccountId[0])
+             }*/
 
             // deleteCalendarAccountByName(appName)
 
@@ -66,6 +66,11 @@ class MainActivity : AppCompatActivity() {
             //deleteCalendarAccountByName("DISPLAY_NAME")
 
             // createCalendar()
+
+            //queryEvent()
+
+            createCalendar(5)
+
         }
 
 
@@ -130,24 +135,25 @@ class MainActivity : AppCompatActivity() {
         var startMillis: Long = 0
         var endMillis: Long = 0
         val beginTime = Calendar.getInstance()
-        beginTime.set(2019, 9, 12, 17, 10, 0)
+        beginTime.set(2019, 9, 15, 16, 43, 0)
 
         Log.d("Main", beginTime.time.toLocaleString())
         startMillis = beginTime.timeInMillis
         val endTime = Calendar.getInstance()
-        endTime.set(2019, 9, 12, 17, 20, 0)
+        endTime.set(2019, 9, 15, 17, 20, 0)
         endMillis = endTime.timeInMillis
 
         Log.d("Main", endTime.time.toLocaleString())
 
 
-
-        contentValues.put(CalendarContract.Events.DTSTART, startMillis)
-        contentValues.put(CalendarContract.Events.DTEND, startMillis + 600000)
         contentValues.put(CalendarContract.Events.CALENDAR_ID, CalendarId)
+        contentValues.put(CalendarContract.Events.DTSTART, startMillis)
+        contentValues.put(CalendarContract.Events.DTEND, startMillis )
+
         contentValues.put(CalendarContract.Events.EVENT_TIMEZONE, TimeZone.getDefault().id)
         contentValues.put(CalendarContract.Events.TITLE, "任务")
         contentValues.put(CalendarContract.Events.DESCRIPTION, "丢雷楼某")
+
         //contentValues.put(CalendarContract.Events.RRULE, "FREQ=WEEKLY;WKST=SU;BYDAY=SU,MO;")
 
 
@@ -162,6 +168,7 @@ class MainActivity : AppCompatActivity() {
             CalendarContract.Reminders.METHOD,
             CalendarContract.Reminders.METHOD_ALERT
         )
+        contentValues2.put(CalendarContract.Reminders.MINUTES,CalendarContract.Reminders.MINUTES_DEFAULT)
         cr.insert(CalendarContract.Reminders.CONTENT_URI, contentValues2)
     }
 
@@ -197,5 +204,30 @@ class MainActivity : AppCompatActivity() {
         ) > 0
     }
 
+
+    private fun queryEvent() {
+        val INSTANCE_PROJECTION: Array<String> = arrayOf(
+            CalendarContract.Events._ID,
+            CalendarContract.Events.STATUS,
+            CalendarContract.Events.HAS_ALARM,
+            CalendarContract.Events.DURATION
+        )
+
+
+        var cursor =
+            contentResolver.query(CalendarContract.Events.CONTENT_URI, INSTANCE_PROJECTION, "${CalendarContract.Events.TITLE} = ?", arrayOf("555"), null)
+                ?: return
+
+
+        //eventID 80
+
+        if (cursor.moveToFirst()) {
+            cursor.getLong(0)
+
+
+            cursor.close()
+        }
+
+    }
 
 }
