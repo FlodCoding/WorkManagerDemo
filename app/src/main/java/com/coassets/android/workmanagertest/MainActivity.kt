@@ -1,15 +1,21 @@
 package com.coassets.android.workmanagertest
 
+import android.app.KeyguardManager
 import android.content.ContentValues
+import android.content.Context
+import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
 import android.provider.CalendarContract
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import com.coassets.android.workmanagertest.service.GestureAccessibility
 import kotlinx.android.synthetic.main.activity_main.*
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -69,8 +75,15 @@ class MainActivity : AppCompatActivity() {
 
             //queryEvent()
 
-            createCalendar(5)
+            // createCalendar(5)
+           /* view.postDelayed({
+                tryWakeUpAndUnlock(this)
 
+            }, 5000)*/
+            // unlockTest()
+
+            confirmDeviceCredential()
+            GestureAccessibility.startRecord(this)
         }
 
 
@@ -148,7 +161,7 @@ class MainActivity : AppCompatActivity() {
 
         contentValues.put(CalendarContract.Events.CALENDAR_ID, CalendarId)
         contentValues.put(CalendarContract.Events.DTSTART, startMillis)
-        contentValues.put(CalendarContract.Events.DTEND, startMillis )
+        contentValues.put(CalendarContract.Events.DTEND, startMillis)
 
         contentValues.put(CalendarContract.Events.EVENT_TIMEZONE, TimeZone.getDefault().id)
         contentValues.put(CalendarContract.Events.TITLE, "任务")
@@ -168,7 +181,7 @@ class MainActivity : AppCompatActivity() {
             CalendarContract.Reminders.METHOD,
             CalendarContract.Reminders.METHOD_ALERT
         )
-        contentValues2.put(CalendarContract.Reminders.MINUTES,CalendarContract.Reminders.MINUTES_DEFAULT)
+        contentValues2.put(CalendarContract.Reminders.MINUTES, CalendarContract.Reminders.MINUTES_DEFAULT)
         cr.insert(CalendarContract.Reminders.CONTENT_URI, contentValues2)
     }
 
@@ -228,6 +241,58 @@ class MainActivity : AppCompatActivity() {
             cursor.close()
         }
 
+    }
+
+
+    fun wakeTest() {
+        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+        val wakelock = pm.newWakeLock(
+            PowerManager.SCREEN_BRIGHT_WAKE_LOCK or
+                    PowerManager.ACQUIRE_CAUSES_WAKEUP, "DeviceUtil:wakeLock"
+        )
+        wakelock.acquire(30000)
+
+        //wakelock.release()
+    }
+
+    fun unlockTest() {
+        val keyguardManager = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+
+
+        val newKeyguardLock = keyguardManager.newKeyguardLock("DeviceUtil:keyguardManager")
+        newKeyguardLock.disableKeyguard()
+    }
+
+
+    @RequiresApi(Build.VERSION_CODES.LOLLIPOP_MR1)
+    fun tryWakeUpAndUnlock(context: Context) {
+        val km = context.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+
+       /* if ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.M&& km.isDeviceSecure)
+            ||km.isKeyguardSecure
+        ) return*/
+
+
+        val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+        //如果时熄屏,唤醒屏幕
+        if (!pm.isInteractive) {
+            val wakeLock = pm.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK or
+                    PowerManager.ACQUIRE_CAUSES_WAKEUP, "DeviceUtil:WakeLock")
+            wakeLock.acquire(1000)
+            wakeLock.release()
+        }
+
+        if (km.isKeyguardLocked)
+
+            km.newKeyguardLock("DeviceUtil:KeyguardLock").reenableKeyguard()
+    }
+
+
+    fun confirmDeviceCredential(){
+        val km = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+        val  intent  = km.createConfirmDeviceCredentialIntent("","")
+
+        startActivity(intent)
     }
 
 }

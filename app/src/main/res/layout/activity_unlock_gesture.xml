@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.flod.view.GestureCatchView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/layGesture"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    app:pathColor="@android:color/white"
+    app:pathKeepStyle="KEEP">
+
+
+    <ImageView
+        android:id="@+id/image"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY" />
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#8FFFFFFF"
+        android:paddingTop="30dp"
+        app:elevation="0dp">
+
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:navigationIcon="@drawable/ic_close_white"
+            app:title="录制解锁手势" />
+
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+</com.flod.view.GestureCatchView >
