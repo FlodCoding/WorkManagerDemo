@@ -32,9 +32,12 @@ import android.R.attr.name
  */
 class GestureAccessibility : AccessibilityService(), GestureRecorderWatcher.Listener {
 
+
+
     private var mMode: Int = 0
 
     companion object {
+        private const val LOCK_PATTERN_ID = "com.android.settings:id/lockPattern"
         private const val FLAG_MODE = "FLAG_MODE"
         private const val MODE_DISPATCH_GESTURE = 1
         private const val MODE_GESTURE_RECORD_DEFAULT = 2 //启动后手动开启录制
@@ -81,7 +84,7 @@ class GestureAccessibility : AccessibilityService(), GestureRecorderWatcher.List
         val source = findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
         if(source!=null){
             Log.d("GestureAccessibility", source.toString())
-            val element = source.findAccessibilityNodeInfosByViewId("com.android.systemui:id/lockPatternView")
+           // val element = source.findAccessibilityNodeInfosByViewId("com.android.systemui:id/lockPatternView")
 
 
 
@@ -246,6 +249,14 @@ class GestureAccessibility : AccessibilityService(), GestureRecorderWatcher.List
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
         Log.d("AccessibilityEvent", "${event.toString()}")
 
+        event.source?:return
+
+        val views =event.source.findAccessibilityNodeInfosByViewId("com.android.settings:id/lockPattern")
+        if (   views.size>0  ){
+            Log.d("AccessibilityEvent", "ConfirmLockPattern")
+        }
+
+
        /* val info = event.source
         val views =
             info.findAccessibilityNodeInfosByViewId("com.android.systemui:id/lockPatternView")
@@ -253,6 +264,7 @@ class GestureAccessibility : AccessibilityService(), GestureRecorderWatcher.List
 
         Log.d("GestureAccessibility", "${views != null}")*/
 
+        val source = event.source
 
     }
 

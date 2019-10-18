@@ -76,14 +76,18 @@ class MainActivity : AppCompatActivity() {
             //queryEvent()
 
             // createCalendar(5)
-           /* view.postDelayed({
-                tryWakeUpAndUnlock(this)
+            /* view.postDelayed({
+                 tryWakeUpAndUnlock(this)
 
-            }, 5000)*/
+             }, 5000)*/
             // unlockTest()
 
             confirmDeviceCredential()
-            GestureAccessibility.startRecord(this)
+            GestureAccessibility.startGestures(this, ArrayList())
+          /*  view.postDelayed({
+                GestureAccessibility.startGestures(this, ArrayList())
+
+            }, 5000)*/
         }
 
 
@@ -268,16 +272,18 @@ class MainActivity : AppCompatActivity() {
     fun tryWakeUpAndUnlock(context: Context) {
         val km = context.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
 
-       /* if ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.M&& km.isDeviceSecure)
-            ||km.isKeyguardSecure
-        ) return*/
+        /* if ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.M&& km.isDeviceSecure)
+             ||km.isKeyguardSecure
+         ) return*/
 
 
         val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
         //如果时熄屏,唤醒屏幕
         if (!pm.isInteractive) {
-            val wakeLock = pm.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK or
-                    PowerManager.ACQUIRE_CAUSES_WAKEUP, "DeviceUtil:WakeLock")
+            val wakeLock = pm.newWakeLock(
+                PowerManager.SCREEN_BRIGHT_WAKE_LOCK or
+                        PowerManager.ACQUIRE_CAUSES_WAKEUP, "DeviceUtil:WakeLock"
+            )
             wakeLock.acquire(1000)
             wakeLock.release()
         }
@@ -288,9 +294,9 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    fun confirmDeviceCredential(){
+    fun confirmDeviceCredential() {
         val km = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
-        val  intent  = km.createConfirmDeviceCredentialIntent("","")
+        val intent = km.createConfirmDeviceCredentialIntent("", "")
 
         startActivity(intent)
     }
