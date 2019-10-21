@@ -6,7 +6,7 @@ import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverters
-
+import java.io.Serializable
 
 
 /**
@@ -18,24 +18,25 @@ import androidx.room.TypeConverters
 @Entity
 @TypeConverters(Converter::class)
 data class Task(
-        @PrimaryKey(autoGenerate = true)
-        var id: Long = 0,
-        var enable: Boolean,
-        @Embedded
-        var appInfo: AppInfo,
-        @Embedded
-        var time: Time,
-        @Embedded
-        var gesture: Gesture?) {
+    @PrimaryKey(autoGenerate = true)
+    var id: Long = 0,
+    var enable: Boolean,
+    @Embedded
+    var appInfo: AppInfo,
+    @Embedded
+    var time: Time,
+    @Embedded
+    var gesture: Gesture?
+) {
 
 
     fun toMap(): Map<String, Any?> {
         return mapOf(
-                "id" to id,
-                "enable" to enable,
-                "appInfo" to appInfo.toMap(),
-                "time" to time.toMap(),
-                "gesture" to gesture?.toMap()
+            "id" to id,
+            "enable" to enable,
+            "appInfo" to appInfo.toMap(),
+            "time" to time.toMap(),
+            "gesture" to gesture?.toMap()
 
         )
     }
@@ -43,23 +44,25 @@ data class Task(
 
     fun getIdMap(): Map<String, Any> {
         return mapOf(
-                "id" to id,
-                "eventId" to time.eventId
+            "id" to id,
+            "eventId" to time.eventId
         )
     }
 }
 
 @Entity
-data class AppInfo(var appName: String,
-                   var appIconBytes: ByteArray,
-                   var launchName: String,
-                   var launchPackage: String) {
+data class AppInfo(
+    var appName: String,
+    var appIconBytes: ByteArray,
+    var launchName: String,
+    var launchPackage: String
+) {
     fun toMap(): Map<String, Any> {
         return mapOf(
-                "appName" to appName,
-                "appIconBytes" to appIconBytes,
-                "launchName" to launchName,
-                "launchPackage" to launchPackage
+            "appName" to appName,
+            "appIconBytes" to appIconBytes,
+            "launchName" to launchName,
+            "launchPackage" to launchPackage
         )
     }
 }
@@ -67,34 +70,40 @@ data class AppInfo(var appName: String,
 
 @Entity
 data class Time(
-        var eventId: Long,
-        var repeat: Boolean,
-        var repeatInWeek: List<Boolean>,
-        var dateTime: Long) {
+    var eventId: Long,
+    var repeat: Boolean,
+    var repeatInWeek: List<Boolean>,
+    var dateTime: Long
+) {
     fun toMap(): Map<String, Any> {
         return mapOf(
-                "eventId" to eventId,
-                "repeat" to repeat,
-                "repeatInWeek" to repeatInWeek,
-                "dateTime" to dateTime
+            "eventId" to eventId,
+            "repeat" to repeat,
+            "repeatInWeek" to repeatInWeek,
+            "dateTime" to dateTime
         )
     }
 }
 
+
 @Entity
-data class Gesture(var gestureBundleBytes: ByteArray) {
+data class Gesture(
+    var gestureBundleBytes: ByteArray,
+    var checkOriginPoint: Boolean = false,
+    val originX: Float = 0f, val originY: Float = 0f
+) : Serializable {
     fun toMap(): Map<String, Any> {
         return mapOf(
-                "gestureBundleBytes" to gestureBundleBytes
+            "gestureBundleBytes" to gestureBundleBytes
         )
     }
 
     fun buildGestureBundle(): GestureBundle {
         return GestureBundle.fromBytes(gestureBundleBytes)
     }
+
 }
 
 class Converter {
-
 
 }

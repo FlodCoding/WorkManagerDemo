@@ -51,7 +51,17 @@ class GestureRecorderService : Service() {
                 isAfterGesture = true
                 //由於 updateViewLayout會有延遲，所以添加一個監聽器，一旦更新完狀態就分發手勢給AccessibilityService
                 gestureCatchView.addOnLayoutChangeListener(object : View.OnLayoutChangeListener {
-                    override fun onLayoutChange(v: View?, left: Int, top: Int, right: Int, bottom: Int, oldLeft: Int, oldTop: Int, oldRight: Int, oldBottom: Int) {
+                    override fun onLayoutChange(
+                        v: View?,
+                        left: Int,
+                        top: Int,
+                        right: Int,
+                        bottom: Int,
+                        oldLeft: Int,
+                        oldTop: Int,
+                        oldRight: Int,
+                        oldBottom: Int
+                    ) {
                         if (isAfterGesture) {
                             dispatchGesture(gestureInfo)
                             isAfterGesture = false
@@ -88,7 +98,7 @@ class GestureRecorderService : Service() {
 
     private val recordBtn by lazy {
         val recordBtn = LayoutInflater.from(this)
-                .inflate(R.layout.layout_record_btn, null) as MovableLayout
+            .inflate(R.layout.layout_record_btn, null) as MovableLayout
         val layRecord = recordBtn.layRecord
         val tvRecord = recordBtn.tvRecord
         val imRecord = recordBtn.imRecord
@@ -124,11 +134,11 @@ class GestureRecorderService : Service() {
     //開放給客戶端的接口
     inner class IGestureRecordBinder : Binder() {
 
-        fun performStart(){
+        fun performStart() {
             recordBtn.layRecord.callOnClick()
         }
 
-        fun setOnGestureRecordedListener(listener: GestureRecorderWatcher.Listener?) {
+        fun setOnGestureRecordedListener(listener: GestureWatcher.Recorder?) {
             mOnGestureRecordListener = listener
         }
 
@@ -139,8 +149,7 @@ class GestureRecorderService : Service() {
     }
 
 
-
-    private var mOnGestureRecordListener: GestureRecorderWatcher.Listener? = null
+    private var mOnGestureRecordListener: GestureWatcher.Recorder? = null
 
 
     override fun onBind(intent: Intent?): IBinder? {

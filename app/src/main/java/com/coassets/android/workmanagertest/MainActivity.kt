@@ -1,8 +1,10 @@
 package com.coassets.android.workmanagertest
 
+import android.accessibilityservice.AccessibilityService
 import android.app.KeyguardManager
 import android.content.ContentValues
 import android.content.Context
+import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
@@ -10,12 +12,15 @@ import android.provider.CalendarContract
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.coassets.android.workmanagertest.service.GestureAccessibility
+import com.coassets.android.workmanagertest.service.GestureWatcher
 import kotlinx.android.synthetic.main.activity_main.*
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -83,11 +88,44 @@ class MainActivity : AppCompatActivity() {
             // unlockTest()
 
             confirmDeviceCredential()
-            GestureAccessibility.startGestures(this, ArrayList())
-          /*  view.postDelayed({
-                GestureAccessibility.startGestures(this, ArrayList())
 
-            }, 5000)*/
+            GestureAccessibility.startService(this)
+            GestureAccessibility.setGlobalGestureWatcher(object :
+
+                GestureWatcher.SimpleAccessibility() {
+                private val LOCK_PATTERN_ID = "com.android.settings:id/lockPattern"
+                private var originX: Float = 0f
+                private var originY: Float = 0f
+                private var findTarget = true
+
+                override fun onAccessibilityEvent(service: AccessibilityService, event: AccessibilityEvent) {
+                    if (findTarget) {
+                        val source = event.source ?: return
+                        val targets = source.findAccessibilityNodeInfosByViewId(LOCK_PATTERN_ID)
+                        //TODO 找不到错误完善
+                        if (targets.isNotEmpty()) {
+                            findTarget = false
+                            Log.d(GestureAccessibility.TAG, "onAccessibilityEvent")
+                            countOriginPoint(targets[0])
+
+                            //找到这个元素，启动Service
+                            GestureAccessibility.startRecord(this@MainActivity)
+
+                        }
+                    }
+                }
+
+
+                fun countOriginPoint(target: AccessibilityNodeInfo) {
+                    val bound = Rect()
+                    target.getBoundsInScreen(bound)
+                    originX = bound.left.toFloat()
+                    originY = bound.top.toFloat()
+                }
+
+            })
+
+
         }
 
 

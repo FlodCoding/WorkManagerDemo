@@ -14,7 +14,7 @@ import com.flod.view.GestureInfo
  */
 
 class GestureBundle(
-        val gestureInfoList: List<GestureInfo>) : Parcelable {
+        val gestureInfoList: ArrayList<GestureInfo>) : Parcelable {
     constructor(parcel: Parcel) : this(parcel.createTypedArrayList(GestureInfo.CREATOR)!!)
 
 

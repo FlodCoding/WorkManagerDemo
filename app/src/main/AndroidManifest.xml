@@ -40,16 +40,6 @@
             </intent-filter>
         </activity>
 
-        <receiver
-                android:name=".service.CalendarReceiver"
-                android:enabled="true"
-                android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.EVENT_REMINDER"/>
-                <data android:scheme="content"/>
-                 <!--  <action android:name="android.intent.action.TIME_SET"/>-->
-            </intent-filter>
-        </receiver>
 
         <activity
                 android:name=".MainActivity"
