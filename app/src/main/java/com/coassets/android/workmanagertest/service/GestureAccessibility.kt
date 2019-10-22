@@ -9,14 +9,17 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.graphics.Rect
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import androidx.annotation.RequiresApi
+import com.coassets.android.workmanagertest.CalendarResultActivity
 import com.coassets.android.workmanagertest.data.Gesture
-import com.flod.view.GestureInfo
+import com.coassets.android.workmanagertest.utils.PrefsUtil
+import com.flod.gesture.GestureInfo
 
 
 /**
@@ -37,6 +40,7 @@ class GestureAccessibility : AccessibilityService(), GestureWatcher.Recorder {
         private const val MODE_DISPATCH_GESTURE = 1
         private const val MODE_GESTURE_RECORD_DEFAULT = 2 //启动后手动开启录制
         private const val MODE_GESTURE_RECORD_AUTO = 3    //启动后立刻开始录制
+        private const val MODE_GESTURE_RECORD_STOP = 4    //如果当前正在录制，结束录制
 
         private const val KEY_GESTURE = "KEY_GESTURE"
 
@@ -45,7 +49,7 @@ class GestureAccessibility : AccessibilityService(), GestureWatcher.Recorder {
 
         //由于onBind 在AccessibilityService中被设置为final，无法使用bindService与外界通信
         //目前就先使用静态接口，通过接口将数据回调出去，不太好的做法，后面是否考虑别的方式
-        fun setGlobalGestureWatcher(watcher: GestureWatcher.Accessibility) {
+        fun setGlobalGestureWatcher(watcher: GestureWatcher.Accessibility?) {
             mGlobalWatcher = watcher
         }
 
@@ -71,6 +75,12 @@ class GestureAccessibility : AccessibilityService(), GestureWatcher.Recorder {
             intent.putExtra(KEY_MODE, MODE_GESTURE_RECORD_AUTO)
             context.startService(intent)
         }
+
+        fun stopRecord(context: Context) {
+            val intent = Intent(context, GestureAccessibility::class.java)
+            intent.putExtra(KEY_MODE, MODE_GESTURE_RECORD_STOP)
+            context.startService(intent)
+        }
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
@@ -81,7 +91,6 @@ class GestureAccessibility : AccessibilityService(), GestureWatcher.Recorder {
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
         Log.d(TAG, "onStartCommand")
-
 
         mMode = intent.getIntExtra(KEY_MODE, 0)
         when (mMode) {
@@ -94,9 +103,18 @@ class GestureAccessibility : AccessibilityService(), GestureWatcher.Recorder {
             //RecordGesture
             MODE_GESTURE_RECORD_DEFAULT or
                     MODE_GESTURE_RECORD_AUTO -> bindGestureRecordService()
+
+            MODE_GESTURE_RECORD_STOP -> stopRecordService()
         }
 
         return super.onStartCommand(intent, flags, startId)
+    }
+
+
+    //=============================== Gestures Part=============================================//
+
+    private fun addWakeupView() {
+
     }
 
 
@@ -121,14 +139,43 @@ class GestureAccessibility : AccessibilityService(), GestureWatcher.Recorder {
 
             //有滑动锁
             if (km.isKeyguardLocked) {
-                km.newKeyguardLock("$TAG:KeyguardLock").disableKeyguard()
+                startActivity(Intent(this, CalendarResultActivity::class.java))
             }
 
             //有屏幕锁
             if (km.isDeviceSecure) {
                 //TODO 拿到屏幕解锁手势，添加到List里面
+                val unlockGesture =
+                    (PrefsUtil.getSerializable("gesture") as Gesture)
+                if (unlockGesture.checkOriginPoint) {
 
-                //gestures.add(0,GestureInfo())
+                    if (rootInActiveWindow==null){
+                        //TODO 无障碍没开
+                        return
+                    }
+                    val targets =
+                        rootInActiveWindow.findAccessibilityNodeInfosByViewId("com.android.systemui:id/lockPatternView")
+
+                    if (targets.isNotEmpty()) {
+                        val bounds = Rect()
+                        targets[0].getBoundsInScreen(bounds)
+
+                        Log.d(TAG, bounds.toShortString())
+                        val offsetX = bounds.left - unlockGesture.originX
+                        val offsetY = bounds.top - unlockGesture.originY
+                        val gestureList = unlockGesture.buildGestureBundle().gestureInfoList
+                        for (item in gestureList) {
+                            item.offsetX = offsetX
+                            item.offsetY = offsetY
+                            Log.d(TAG, "offsetX:$offsetX")
+                            Log.d(TAG, "offsetY:$offsetY")
+                        }
+                        gestures.addAll(0, gestureList)
+                    }
+
+                }
+
+
             }
 
         }
@@ -155,9 +202,7 @@ class GestureAccessibility : AccessibilityService(), GestureWatcher.Recorder {
                 }
             }
 
-        for (item in gestures) {
-            startGesture(item, callBack, false)
-        }
+        startGesture(gestures[index], callBack, false)
     }
 
 
@@ -178,9 +223,14 @@ class GestureAccessibility : AccessibilityService(), GestureWatcher.Recorder {
         for (stroke in gesture.strokes.withIndex()) {
             if (stroke.index == GestureDescription.getMaxStrokeCount() - 1)
                 break
+
+            val path = stroke.value.path
+            if (gestureInfo.offsetX != 0f || gestureInfo.offsetY != 0f) {
+                path.offset(gestureInfo.offsetX, gestureInfo.offsetY)
+            }
             val description =
                 GestureDescription.StrokeDescription(
-                    stroke.value.path,
+                    path,
                     if (immediately) 0 else gestureInfo.delayTime,
                     duration
                 )
@@ -211,7 +261,7 @@ class GestureAccessibility : AccessibilityService(), GestureWatcher.Recorder {
 
                 //自动开始
                 if (mMode == MODE_GESTURE_RECORD_AUTO) {
-                    service.performStart()
+                    service.performRecordBtn()
                 }
 
             }
@@ -224,8 +274,14 @@ class GestureAccessibility : AccessibilityService(), GestureWatcher.Recorder {
         bindService(intent, mServiceConnection, Context.BIND_AUTO_CREATE)
     }
 
+    private fun stopRecordService() {
+        mRecordServiceBinder ?: return
 
-    //==========================Recorder==================================//
+        if (mRecordServiceBinder?.isRecording()!!) {
+            //StopRecording
+            mRecordServiceBinder?.performRecordBtn()
+        }
+    }
 
 
     override fun onStartRecord() {

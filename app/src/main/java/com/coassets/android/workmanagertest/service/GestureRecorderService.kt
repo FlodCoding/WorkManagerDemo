@@ -17,10 +17,10 @@ import android.view.View
 import android.view.WindowManager
 import com.coassets.android.workmanagertest.MovableLayout
 import com.coassets.android.workmanagertest.R
+import com.flod.gesture.GestureCatchView
+import com.flod.gesture.GestureInfo
+import com.flod.gesture.GestureType
 
-import com.flod.view.GestureCatchView
-import com.flod.view.GestureInfo
-import com.flod.view.GestureType
 import kotlinx.android.synthetic.main.layout_record_btn.view.*
 
 /**
@@ -35,6 +35,7 @@ class GestureRecorderService : Service() {
 
 
     private val windowManager by lazy { getSystemService(Context.WINDOW_SERVICE) as WindowManager }
+    private var isRecording = false
 
     private val gestureView: GestureCatchView by lazy {
         val gestureCatchView = GestureCatchView(this)
@@ -51,17 +52,7 @@ class GestureRecorderService : Service() {
                 isAfterGesture = true
                 //由於 updateViewLayout會有延遲，所以添加一個監聽器，一旦更新完狀態就分發手勢給AccessibilityService
                 gestureCatchView.addOnLayoutChangeListener(object : View.OnLayoutChangeListener {
-                    override fun onLayoutChange(
-                        v: View?,
-                        left: Int,
-                        top: Int,
-                        right: Int,
-                        bottom: Int,
-                        oldLeft: Int,
-                        oldTop: Int,
-                        oldRight: Int,
-                        oldBottom: Int
-                    ) {
+                    override fun onLayoutChange(v: View?, left: Int, top: Int, right: Int, bottom: Int, oldLeft: Int, oldTop: Int, oldRight: Int, oldBottom: Int) {
                         if (isAfterGesture) {
                             dispatchGesture(gestureInfo)
                             isAfterGesture = false
@@ -134,8 +125,13 @@ class GestureRecorderService : Service() {
     //開放給客戶端的接口
     inner class IGestureRecordBinder : Binder() {
 
-        fun performStart() {
+        fun performRecordBtn() {
             recordBtn.layRecord.callOnClick()
+        }
+
+
+        fun isRecording(): Boolean {
+            return isRecording
         }
 
         fun setOnGestureRecordedListener(listener: GestureWatcher.Recorder?) {
@@ -164,22 +160,26 @@ class GestureRecorderService : Service() {
     }
 
     private fun startRecord() {
+        isRecording = true
         enableGestureCatchView(true)
         gestureView.startRecord()
         mOnGestureRecordListener?.onStartRecord()
     }
 
     private fun stopRecord() {
+        isRecording = false
         enableGestureCatchView(false)
         val result = gestureView.stopRecord()
         mOnGestureRecordListener?.onStopRecord(result)
     }
 
     private fun cancelRecord() {
+        isRecording = false
         mOnGestureRecordListener?.onCancelRecord()
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
+        isRecording = false
         windowManager.removeView(recordBtn)
         windowManager.removeView(gestureView)
         return super.onUnbind(intent)

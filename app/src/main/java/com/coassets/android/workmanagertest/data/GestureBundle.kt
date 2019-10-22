@@ -3,7 +3,7 @@ package com.coassets.android.workmanagertest.data
 import android.os.Parcel
 import android.os.Parcelable
 import com.coassets.android.workmanagertest.utils.ParcelableUtil
-import com.flod.view.GestureInfo
+import com.flod.gesture.GestureInfo
 
 /**
  * SimpleDes:

@@ -1,9 +1,11 @@
 package com.coassets.android.workmanagertest
 
 import android.accessibilityservice.AccessibilityService
+import android.app.Activity
 import android.app.KeyguardManager
 import android.content.ContentValues
 import android.content.Context
+import android.content.Intent
 import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
@@ -12,6 +14,8 @@ import android.provider.CalendarContract
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
+import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.Toast
@@ -19,9 +23,14 @@ import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import com.coassets.android.workmanagertest.data.Gesture
+import com.coassets.android.workmanagertest.data.GestureBundle
 import com.coassets.android.workmanagertest.service.GestureAccessibility
 import com.coassets.android.workmanagertest.service.GestureWatcher
+import com.coassets.android.workmanagertest.utils.PrefsUtil
+import com.flod.gesture.GestureInfo
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.content_main.*
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.collections.ArrayList
@@ -33,6 +42,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         setSupportActionBar(toolbar)
 
+        PrefsUtil.init(application)
 
 
         fab.setOnClickListener { view ->
@@ -81,77 +91,163 @@ class MainActivity : AppCompatActivity() {
             //queryEvent()
 
             // createCalendar(5)
-            /* view.postDelayed({
-                 tryWakeUpAndUnlock(this)
+            // confirmDeviceCredential()
+            view.postDelayed({
+               tryWakeUpAndUnlock(this)
 
-             }, 5000)*/
+            }, 3000)
+
+
             // unlockTest()
 
-            confirmDeviceCredential()
+        }
 
-            GestureAccessibility.startService(this)
-            GestureAccessibility.setGlobalGestureWatcher(object :
 
-                GestureWatcher.SimpleAccessibility() {
-                private val LOCK_PATTERN_ID = "com.android.settings:id/lockPattern"
-                private var originX: Float = 0f
-                private var originY: Float = 0f
-                private var findTarget = true
+        text.setOnClickListener {
+            val gesture = PrefsUtil.getSerializable("gesture") as Gesture
 
-                override fun onAccessibilityEvent(service: AccessibilityService, event: AccessibilityEvent) {
-                    if (findTarget) {
-                        val source = event.source ?: return
-                        val targets = source.findAccessibilityNodeInfosByViewId(LOCK_PATTERN_ID)
-                        //TODO 找不到错误完善
-                        if (targets.isNotEmpty()) {
-                            findTarget = false
-                            Log.d(GestureAccessibility.TAG, "onAccessibilityEvent")
-                            countOriginPoint(targets[0])
+            it.postDelayed({
 
-                            //找到这个元素，启动Service
-                            GestureAccessibility.startRecord(this@MainActivity)
+                GestureAccessibility.startGestures(this@MainActivity, gesture)
 
-                        }
+            }, 3000)
+        }
+    }
+
+    fun gestureTest() {
+        confirmDeviceCredential()
+
+        GestureAccessibility.startService(this)
+        GestureAccessibility.setGlobalGestureWatcher(object :
+
+            GestureWatcher.SimpleAccessibility() {
+            private val LOCK_PATTERN_ID = "com.android.settings:id/lockPattern"
+            private var originX: Float = 0f
+            private var originY: Float = 0f
+            private var findTarget = true
+
+            override fun onAccessibilityEvent(service: AccessibilityService, event: AccessibilityEvent) {
+                if (findTarget) {
+                    val source = event.source ?: return
+                    val targets = source.findAccessibilityNodeInfosByViewId(LOCK_PATTERN_ID)
+                    //TODO 找不到错误完善
+                    if (targets.isNotEmpty()) {
+                        findTarget = false
+                        Log.d(GestureAccessibility.TAG, "onAccessibilityEvent")
+                        countOriginPoint(targets[0])
+
+                        //找到这个元素，启动Service
+                        GestureAccessibility.startRecord(this@MainActivity)
+
                     }
                 }
+            }
+
+            override fun onStopRecord(service: AccessibilityService, gestureInfoList: ArrayList<GestureInfo>) {
+                val gesture =
+                    Gesture(
+                        checkOriginPoint = true,
+                        gestureBundleBytes = GestureBundle(gestureInfoList).toBytes(),
+                        originX = originX, originY = originY
+                    )
+
+                PrefsUtil.putSerializable("gesture", gesture)
+
+                GestureAccessibility.setGlobalGestureWatcher(null)
+            }
 
 
-                fun countOriginPoint(target: AccessibilityNodeInfo) {
-                    val bound = Rect()
-                    target.getBoundsInScreen(bound)
-                    originX = bound.left.toFloat()
-                    originY = bound.top.toFloat()
-                }
+            fun countOriginPoint(target: AccessibilityNodeInfo) {
+                val bound = Rect()
+                target.getBoundsInScreen(bound)
+                originX = bound.left.toFloat()
+                originY = bound.top.toFloat()
+            }
 
-            })
+        })
 
 
+    }
+
+
+    fun wakeTest() {
+        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+        val wakelock = pm.newWakeLock(
+            PowerManager.SCREEN_BRIGHT_WAKE_LOCK or
+                    PowerManager.ACQUIRE_CAUSES_WAKEUP, "DeviceUtil:wakeLock"
+        )
+        wakelock.acquire(30000)
+
+        //wakelock.release()
+    }
+
+    fun unlockTest() {
+        val keyguardManager = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+
+
+        val newKeyguardLock = keyguardManager.newKeyguardLock("DeviceUtil:keyguardManager")
+        newKeyguardLock.disableKeyguard()
+    }
+
+
+    @RequiresApi(Build.VERSION_CODES.LOLLIPOP_MR1)
+    fun tryWakeUpAndUnlock(context: Context) {
+        val km = context.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+        val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+        //如果时熄屏,唤醒屏幕
+        if (!pm.isInteractive) {
+            val wakeLock = pm.newWakeLock(
+                PowerManager.SCREEN_BRIGHT_WAKE_LOCK or
+                        PowerManager.ACQUIRE_CAUSES_WAKEUP, "DeviceUtil:WakeLock"
+            )
+            wakeLock.acquire(30000)
         }
 
 
-        // startService(Intent(this, DeskService::class.java))
+        /*km.requestDismissKeyguard(this, @RequiresApi(Build.VERSION_CODES.O)
+        object :KeyguardManager.KeyguardDismissCallback(){
+            override fun onDismissCancelled() {
+                super.onDismissCancelled()
+            }
+
+            override fun onDismissError() {
+                super.onDismissError()
+            }
+
+            override fun onDismissSucceeded() {
+                super.onDismissSucceeded()
+            }
+        })*/
+
+         window.addFlags(
+             WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
+         )
+
+
+
 
 
     }
 
 
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        menuInflater.inflate(R.menu.menu_main, menu)
-        return true
+    fun confirmDeviceCredential() {
+        val km = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+        val intent = km.createConfirmDeviceCredentialIntent("", "")
+
+        startActivityForResult(intent, 0x51)
     }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        return when (item.itemId) {
-            R.id.action_settings -> true
-            else -> super.onOptionsItemSelected(item)
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+
+        if (requestCode == 0x51 && resultCode == Activity.RESULT_OK) {
+            GestureAccessibility.stopRecord(this)
         }
     }
 
 
+    //=====================================================================================================================================================================
     fun addNewWork() {
         val uploadWorkReq = OneTimeWorkRequestBuilder<UploadWorker>()
             .setInitialDelay(5, TimeUnit.SECONDS)
@@ -285,58 +381,20 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-
-    fun wakeTest() {
-        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-        val wakelock = pm.newWakeLock(
-            PowerManager.SCREEN_BRIGHT_WAKE_LOCK or
-                    PowerManager.ACQUIRE_CAUSES_WAKEUP, "DeviceUtil:wakeLock"
-        )
-        wakelock.acquire(30000)
-
-        //wakelock.release()
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        menuInflater.inflate(R.menu.menu_main, menu)
+        return true
     }
 
-    fun unlockTest() {
-        val keyguardManager = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
-
-
-        val newKeyguardLock = keyguardManager.newKeyguardLock("DeviceUtil:keyguardManager")
-        newKeyguardLock.disableKeyguard()
-    }
-
-
-    @RequiresApi(Build.VERSION_CODES.LOLLIPOP_MR1)
-    fun tryWakeUpAndUnlock(context: Context) {
-        val km = context.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
-
-        /* if ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.M&& km.isDeviceSecure)
-             ||km.isKeyguardSecure
-         ) return*/
-
-
-        val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
-        //如果时熄屏,唤醒屏幕
-        if (!pm.isInteractive) {
-            val wakeLock = pm.newWakeLock(
-                PowerManager.SCREEN_BRIGHT_WAKE_LOCK or
-                        PowerManager.ACQUIRE_CAUSES_WAKEUP, "DeviceUtil:WakeLock"
-            )
-            wakeLock.acquire(1000)
-            wakeLock.release()
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        return when (item.itemId) {
+            R.id.action_settings -> true
+            else -> super.onOptionsItemSelected(item)
         }
-
-        if (km.isKeyguardLocked)
-
-            km.newKeyguardLock("DeviceUtil:KeyguardLock").reenableKeyguard()
-    }
-
-
-    fun confirmDeviceCredential() {
-        val km = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
-        val intent = km.createConfirmDeviceCredentialIntent("", "")
-
-        startActivity(intent)
     }
 
 }

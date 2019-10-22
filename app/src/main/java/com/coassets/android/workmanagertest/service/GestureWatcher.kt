@@ -2,7 +2,8 @@ package com.coassets.android.workmanagertest.service
 
 import android.accessibilityservice.AccessibilityService
 import android.view.accessibility.AccessibilityEvent
-import com.flod.view.GestureInfo
+import com.flod.gesture.GestureInfo
+
 
 /**
  * SimpleDes:
