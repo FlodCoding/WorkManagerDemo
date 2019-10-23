@@ -15,11 +15,16 @@ import android.os.IBinder
 import android.os.PowerManager
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityNodeInfo
 import androidx.annotation.RequiresApi
-import com.coassets.android.workmanagertest.CalendarResultActivity
+import com.coassets.android.workmanagertest.KeyguardDismissActivity
 import com.coassets.android.workmanagertest.data.Gesture
 import com.coassets.android.workmanagertest.utils.PrefsUtil
 import com.flod.gesture.GestureInfo
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 
 /**
@@ -117,6 +122,27 @@ class GestureAccessibility : AccessibilityService(), GestureWatcher.Recorder {
 
     }
 
+    private suspend fun findLockPattern(): AccessibilityNodeInfo? {
+        var target: AccessibilityNodeInfo? = null
+        repeat(5) {
+            if (rootInActiveWindow != null) {
+                val targets =
+                    rootInActiveWindow.findAccessibilityNodeInfosByViewId("com.android.systemui:id/lockPatternView")
+
+                if (targets.isNotEmpty()) {
+                    target = targets[0]
+                    return@repeat
+                }
+            }
+            delay(timeMillis = 1000)
+        }
+        return target
+    }
+
+    private fun launchKeyguardDismiss(){
+        startActivity(Intent(this@GestureAccessibility, KeyguardDismissActivity::class.java))
+    }
+
 
     private fun dispatchGestures(gesture: Gesture) {
         val gestures = gesture.buildGestureBundle().gestureInfoList
@@ -138,28 +164,19 @@ class GestureAccessibility : AccessibilityService(), GestureWatcher.Recorder {
             wakeLock.acquire(30000)
 
             //有滑动锁
-            if (km.isKeyguardLocked) {
-                startActivity(Intent(this, CalendarResultActivity::class.java))
-            }
+            launchKeyguardDismiss()
 
-            //有屏幕锁
-            if (km.isDeviceSecure) {
-                //TODO 拿到屏幕解锁手势，添加到List里面
-                val unlockGesture =
-                    (PrefsUtil.getSerializable("gesture") as Gesture)
-                if (unlockGesture.checkOriginPoint) {
+            GlobalScope.launch {
+                val two = async {findLockPattern()}
 
-                    if (rootInActiveWindow==null){
-                        //TODO 无障碍没开
-                        return
-                    }
-                    val targets =
-                        rootInActiveWindow.findAccessibilityNodeInfosByViewId("com.android.systemui:id/lockPatternView")
+                val target = two.await()
 
-                    if (targets.isNotEmpty()) {
+                if (target != null) {
+                    val unlockGesture =
+                        (PrefsUtil.getSerializable("gesture") as Gesture)
+                    if (unlockGesture.checkOriginPoint) {
                         val bounds = Rect()
-                        targets[0].getBoundsInScreen(bounds)
-
+                        target.getBoundsInScreen(bounds)
                         Log.d(TAG, bounds.toShortString())
                         val offsetX = bounds.left - unlockGesture.originX
                         val offsetY = bounds.top - unlockGesture.originY
@@ -171,46 +188,106 @@ class GestureAccessibility : AccessibilityService(), GestureWatcher.Recorder {
                             Log.d(TAG, "offsetY:$offsetY")
                         }
                         gestures.addAll(0, gestureList)
-                    }
 
+                        var index = 0
+                        val callBack =
+                            object : AccessibilityService.GestureResultCallback() {
+                                override fun onCancelled(gestureDescription: GestureDescription?) {
+                                    Log.d(TAG, "onCancelled")
+                                }
+
+                                override fun onCompleted(gestureDescription: GestureDescription?) {
+                                    Log.d(TAG, "onCompleted")
+
+                                    index++
+
+                                    if (gestures.size > index) {
+                                        //startGesture(gestures[index], this, false)
+                                    } else {
+                                        index = 0
+                                    }
+
+                                }
+                            }
+
+                        startGesture(gestures[index], callBack, false)
+                    }
                 }
 
-
             }
+
+
+
+            //有屏幕锁
+            /* if (km.isDeviceSecure) {
+                 //TODO 拿到屏幕解锁手势，添加到List里面
+                 val unlockGesture =
+                     (PrefsUtil.getSerializable("gesture") as Gesture)
+                 if (unlockGesture.checkOriginPoint) {
+
+                     if (rootInActiveWindow == null) {
+                         //TODO 无障碍没开
+                         return
+                     }
+
+
+                     val targets =
+                         rootInActiveWindow.findAccessibilityNodeInfosByViewId("com.android.systemui:id/lockPatternView")
+
+                     if (targets.isNotEmpty()) {
+                         val bounds = Rect()
+                         targets[0].getBoundsInScreen(bounds)
+
+                         Log.d(TAG, bounds.toShortString())
+                         val offsetX = bounds.left - unlockGesture.originX
+                         val offsetY = bounds.top - unlockGesture.originY
+                         val gestureList = unlockGesture.buildGestureBundle().gestureInfoList
+                         for (item in gestureList) {
+                             item.offsetX = offsetX
+                             item.offsetY = offsetY
+                             Log.d(TAG, "offsetX:$offsetX")
+                             Log.d(TAG, "offsetY:$offsetY")
+                         }
+                         gestures.addAll(0, gestureList)
+                     }
+
+                 }
+
+
+             }*/
 
         }
 
 
-        var index = 0
-        val callBack =
-            object : AccessibilityService.GestureResultCallback() {
-                override fun onCancelled(gestureDescription: GestureDescription?) {
-                    Log.d(TAG, "onCancelled")
-                }
+        /* var index = 0
+         val callBack =
+             object : AccessibilityService.GestureResultCallback() {
+                 override fun onCancelled(gestureDescription: GestureDescription?) {
+                     Log.d(TAG, "onCancelled")
+                 }
 
-                override fun onCompleted(gestureDescription: GestureDescription?) {
-                    Log.d(TAG, "onCompleted")
+                 override fun onCompleted(gestureDescription: GestureDescription?) {
+                     Log.d(TAG, "onCompleted")
 
-                    index++
+                     index++
 
-                    if (gestures.size > index) {
-                        startGesture(gestures[index], this, false)
-                    } else {
-                        index = 0
-                    }
+                     if (gestures.size > index) {
+                         startGesture(gestures[index], this, false)
+                     } else {
+                         index = 0
+                     }
 
-                }
-            }
+                 }
+             }
 
-        startGesture(gestures[index], callBack, false)
+         startGesture(gestures[index], callBack, false)*/
     }
 
 
     private fun startGesture(
         gestureInfo: GestureInfo,
         gestureResultCallback: GestureResultCallback,
-        immediately: Boolean
-    ) {
+        immediately: Boolean) {
 
         val builder = GestureDescription.Builder()
         val gesture = gestureInfo.gesture

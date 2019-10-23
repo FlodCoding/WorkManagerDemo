@@ -14,7 +14,6 @@ import android.provider.CalendarContract
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
-import android.view.View
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
@@ -91,30 +90,31 @@ class MainActivity : AppCompatActivity() {
             //queryEvent()
 
             // createCalendar(5)
-            // confirmDeviceCredential()
-            view.postDelayed({
-               tryWakeUpAndUnlock(this)
 
-            }, 3000)
+           /* view.postDelayed({
+                //startActivity(Intent(this, KeyguardDismissActivity::class.java))
+               // tryWakeUpAndUnlock(this)
 
 
+            }, 3000)*/
+
+            recordGesture()
             // unlockTest()
 
         }
 
 
         text.setOnClickListener {
-            val gesture = PrefsUtil.getSerializable("gesture") as Gesture
-
+            val gesture = PrefsUtil.getSerializable("gesture") as Gesture?
             it.postDelayed({
-
-                GestureAccessibility.startGestures(this@MainActivity, gesture)
+                if (gesture != null)
+                    GestureAccessibility.startGestures(this@MainActivity, gesture)
 
             }, 3000)
         }
     }
 
-    fun gestureTest() {
+    fun recordGesture() {
         confirmDeviceCredential()
 
         GestureAccessibility.startService(this)
@@ -219,12 +219,9 @@ class MainActivity : AppCompatActivity() {
             }
         })*/
 
-         window.addFlags(
-             WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
-         )
-
-
-
+        window.addFlags(
+            WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
+        )
 
 
     }
