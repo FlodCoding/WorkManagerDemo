@@ -3,6 +3,8 @@ package com.coassets.android.workmanagertest
 import android.accessibilityservice.AccessibilityService
 import android.app.Activity
 import android.app.KeyguardManager
+import android.app.Service
+import android.content.ComponentName
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
@@ -103,15 +105,27 @@ class MainActivity : AppCompatActivity() {
 
         }
 
-
+//com.google.android.apps.chrome.Main
+        //com.android.chrome
         text.setOnClickListener {
             val gesture = PrefsUtil.getSerializable("gesture") as Gesture?
             it.postDelayed({
-                if (gesture != null)
-                    GestureAccessibility.startGestures(this@MainActivity, gesture)
+                /*if (gesture != null)
+                    GestureAccessibility.startGestures(this@MainActivity, gesture)*/
+
+            startActivity(getLaunchAppIntent("com.coassets.android.sg","com.coassets.android.core.activities.SplashActivity"))
 
             }, 3000)
         }
+    }
+
+    fun getLaunchAppIntent(launchPackage: String, launchName: String): Intent {
+        val intent = Intent(Intent.ACTION_MAIN)
+        intent.addCategory(Intent.CATEGORY_LAUNCHER)
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val cn = ComponentName(launchPackage, launchName)
+        intent.component = cn
+        return intent
     }
 
     fun recordGesture() {
@@ -126,7 +140,7 @@ class MainActivity : AppCompatActivity() {
             private var originY: Float = 0f
             private var findTarget = true
 
-            override fun onAccessibilityEvent(service: AccessibilityService, event: AccessibilityEvent) {
+            override fun onAccessibilityEvent(service: Service, event: AccessibilityEvent) {
                 if (findTarget) {
                     val source = event.source ?: return
                     val targets = source.findAccessibilityNodeInfosByViewId(LOCK_PATTERN_ID)
@@ -143,7 +157,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-            override fun onStopRecord(service: AccessibilityService, gestureInfoList: ArrayList<GestureInfo>) {
+            override fun onStopRecord(service: Service, gestureInfoList: ArrayList<GestureInfo>) {
                 val gesture =
                     Gesture(
                         checkOriginPoint = true,

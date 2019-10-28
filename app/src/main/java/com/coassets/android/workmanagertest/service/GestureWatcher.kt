@@ -1,6 +1,6 @@
 package com.coassets.android.workmanagertest.service
 
-import android.accessibilityservice.AccessibilityService
+import android.app.Service
 import android.view.accessibility.AccessibilityEvent
 import com.flod.gesture.GestureInfo
 
@@ -16,56 +16,63 @@ import com.flod.gesture.GestureInfo
 class GestureWatcher {
 
     interface Recorder {
-        fun onStartRecord()
-        fun onRecording(gestureInfo: GestureInfo)
-        fun onStopRecord(gestureInfoList: ArrayList<GestureInfo>)
-        fun onCancelRecord()
+        fun onStartRecord(service: Service)
+        fun onRecording(service: Service, gestureInfo: GestureInfo)
+        fun onStopRecord(service: Service, gestureInfoList: ArrayList<GestureInfo>)
+        fun onCancelRecord(service: Service)
     }
 
-    interface Accessibility {
-        fun onStartRecord(service: AccessibilityService)
-        fun onRecording(service: AccessibilityService, gestureInfo: GestureInfo)
-        fun onStopRecord(service: AccessibilityService, gestureInfoList: ArrayList<GestureInfo>)
-        fun onCancelRecord(service: AccessibilityService)
+    interface Accessibility : Recorder {
 
-        fun onAccessibilityEvent(service: AccessibilityService, event: AccessibilityEvent)
+        fun onAccessibilityEvent(service: Service, event: AccessibilityEvent)
+
+        fun onGesturesStart(service: Service)
+
+        fun onGesturesComplete(service: Service)
     }
 
     open class SimpleRecorder : Recorder {
-        override fun onStartRecord() {
+        override fun onStartRecord(service: Service) {
 
         }
 
-        override fun onRecording(gestureInfo: GestureInfo) {
+        override fun onRecording(service: Service, gestureInfo: GestureInfo) {
         }
 
-        override fun onStopRecord(gestureInfoList: ArrayList<GestureInfo>) {
+        override fun onStopRecord(service: Service, gestureInfoList: ArrayList<GestureInfo>) {
         }
 
-        override fun onCancelRecord() {
+        override fun onCancelRecord(service: Service) {
         }
+
+
     }
 
     open class SimpleAccessibility : Accessibility {
 
-        override fun onAccessibilityEvent(service: AccessibilityService, event: AccessibilityEvent) {
+
+
+        override fun onStartRecord(service: Service) {
+
         }
 
-        override fun onStartRecord(service: AccessibilityService) {
+        override fun onRecording(service: Service, gestureInfo: GestureInfo) {
         }
 
-        override fun onRecording(service: AccessibilityService, gestureInfo: GestureInfo) {
+        override fun onStopRecord(service: Service, gestureInfoList: ArrayList<GestureInfo>) {
         }
 
-        override fun onStopRecord(
-            service: AccessibilityService,
-            gestureInfoList: ArrayList<GestureInfo>
-        ) {
+        override fun onCancelRecord(service: Service) {
         }
 
-        override fun onCancelRecord(service: AccessibilityService) {
+        override fun onAccessibilityEvent(service: Service, event: AccessibilityEvent) {
         }
 
+        override fun onGesturesStart(service: Service) {
+        }
+
+        override fun onGesturesComplete(service: Service) {
+        }
     }
 
 

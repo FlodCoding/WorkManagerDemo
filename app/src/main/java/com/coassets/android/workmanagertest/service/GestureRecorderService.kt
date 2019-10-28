@@ -156,26 +156,26 @@ class GestureRecorderService : Service() {
 
 
     private fun dispatchGesture(gestureInfo: GestureInfo) {
-        mOnGestureRecordListener?.onRecording(gestureInfo)
+        mOnGestureRecordListener?.onRecording(this, gestureInfo)
     }
 
     private fun startRecord() {
         isRecording = true
         enableGestureCatchView(true)
         gestureView.startRecord()
-        mOnGestureRecordListener?.onStartRecord()
+        mOnGestureRecordListener?.onStartRecord(this)
     }
 
     private fun stopRecord() {
         isRecording = false
         enableGestureCatchView(false)
         val result = gestureView.stopRecord()
-        mOnGestureRecordListener?.onStopRecord(result)
+        mOnGestureRecordListener?.onStopRecord(this, result)
     }
 
     private fun cancelRecord() {
         isRecording = false
-        mOnGestureRecordListener?.onCancelRecord()
+        mOnGestureRecordListener?.onCancelRecord(this)
     }
 
     override fun onUnbind(intent: Intent?): Boolean {

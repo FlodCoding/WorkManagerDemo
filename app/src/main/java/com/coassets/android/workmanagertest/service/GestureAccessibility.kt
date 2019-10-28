@@ -5,11 +5,11 @@ package com.coassets.android.workmanagertest.service
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.app.KeyguardManager
+import android.app.Service
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.graphics.Rect
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
@@ -19,12 +19,8 @@ import android.view.accessibility.AccessibilityNodeInfo
 import androidx.annotation.RequiresApi
 import com.coassets.android.workmanagertest.KeyguardDismissActivity
 import com.coassets.android.workmanagertest.data.Gesture
-import com.coassets.android.workmanagertest.utils.PrefsUtil
 import com.flod.gesture.GestureInfo
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 
 /**
@@ -102,7 +98,13 @@ class GestureAccessibility : AccessibilityService(), GestureWatcher.Recorder {
             MODE_DISPATCH_GESTURE -> {
                 val gestures = intent.getSerializableExtra(KEY_GESTURE)
                 if (gestures is Gesture) {
-                    dispatchGestures(gestures)
+                    if (tryUnlockDevice()) {
+                        dispatchGestures(gestures.buildGestureBundle().gestureInfoList)
+                    } else {
+                        //需要执行进行解锁手势
+
+                    }
+
                 }
             }
             //RecordGesture
@@ -118,9 +120,6 @@ class GestureAccessibility : AccessibilityService(), GestureWatcher.Recorder {
 
     //=============================== Gestures Part=============================================//
 
-    private fun addWakeupView() {
-
-    }
 
     private suspend fun findLockPattern(): AccessibilityNodeInfo? {
         var target: AccessibilityNodeInfo? = null
@@ -139,20 +138,47 @@ class GestureAccessibility : AccessibilityService(), GestureWatcher.Recorder {
         return target
     }
 
-    private fun launchKeyguardDismiss(){
-        startActivity(Intent(this@GestureAccessibility, KeyguardDismissActivity::class.java))
+
+    private fun dispatchUnlockGestures() {
+
     }
 
 
-    private fun dispatchGestures(gesture: Gesture) {
-        val gestures = gesture.buildGestureBundle().gestureInfoList
-
-
-        //检查当前设备状况
+    @Suppress("DEPRECATION")
+    private fun tryUnlockDevice(): Boolean {
         val km = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
         val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-        //熄屏
+
+        //熄屏下亮屏
         if (!pm.isInteractive) {
+
+            val wakeLock = pm.newWakeLock(
+                PowerManager.SCREEN_BRIGHT_WAKE_LOCK or
+                        PowerManager.ACQUIRE_CAUSES_WAKEUP, "$TAG:WakeLock")
+            //唤醒亮屏30s
+            wakeLock.acquire(30000)
+        }
+
+        //有滑动锁
+        return if (km.isKeyguardLocked) {
+            //有密码锁,需要解锁密码
+            if (km.isDeviceSecure) {
+                //解开滑动锁
+                startActivity(Intent(this@GestureAccessibility, KeyguardDismissActivity::class.java))
+                false
+            } else {
+                //解开滑动锁后直接进入
+                km.newKeyguardLock("DeviceUtil:keyguardManager").disableKeyguard()
+                true
+            }
+
+        } else {
+            true
+        }
+
+
+        //熄屏
+        /*if (!pm.isInteractive) {
             @Suppress("DEPRECATION")
             val wakeLock = pm.newWakeLock(
                 PowerManager.SCREEN_BRIGHT_WAKE_LOCK or
@@ -163,11 +189,12 @@ class GestureAccessibility : AccessibilityService(), GestureWatcher.Recorder {
             //唤醒亮屏30s
             wakeLock.acquire(30000)
 
+
             //有滑动锁
             launchKeyguardDismiss()
 
             GlobalScope.launch {
-                val two = async {findLockPattern()}
+                val two = async { findLockPattern() }
 
                 val target = two.await()
 
@@ -217,9 +244,8 @@ class GestureAccessibility : AccessibilityService(), GestureWatcher.Recorder {
             }
 
 
-
             //有屏幕锁
-            /* if (km.isDeviceSecure) {
+             if (km.isDeviceSecure) {
                  //TODO 拿到屏幕解锁手势，添加到List里面
                  val unlockGesture =
                      (PrefsUtil.getSerializable("gesture") as Gesture)
@@ -254,37 +280,46 @@ class GestureAccessibility : AccessibilityService(), GestureWatcher.Recorder {
                  }
 
 
-             }*/
+             }
 
         }
 
-
-        /* var index = 0
-         val callBack =
-             object : AccessibilityService.GestureResultCallback() {
-                 override fun onCancelled(gestureDescription: GestureDescription?) {
-                     Log.d(TAG, "onCancelled")
-                 }
-
-                 override fun onCompleted(gestureDescription: GestureDescription?) {
-                     Log.d(TAG, "onCompleted")
-
-                     index++
-
-                     if (gestures.size > index) {
-                         startGesture(gestures[index], this, false)
-                     } else {
-                         index = 0
-                     }
-
-                 }
-             }
-
-         startGesture(gestures[index], callBack, false)*/
+*/
     }
 
 
-    private fun startGesture(
+    private fun dispatchGestures(gestures: ArrayList<GestureInfo>) {
+
+        var index = 0
+        val callBack = object : AccessibilityService.GestureResultCallback() {
+            override fun onCancelled(gestureDescription: GestureDescription?) {
+                Log.d("GestureAccessibility", "onCancelled")
+            }
+
+            override fun onCompleted(gestureDescription: GestureDescription?) {
+                Log.d("GestureAccessibility", "onCompleted")
+
+                index++
+
+                if (gestures.size > index) {
+                    dispatchGesture(gestures[index], this, false)
+                } else {
+                    index = 0
+                    mGlobalWatcher?.onGesturesComplete(this@GestureAccessibility)
+                }
+
+            }
+        }
+
+        mGlobalWatcher?.onGesturesStart(this)
+
+        for (gesture in gestures) {
+            dispatchGesture(gesture, callBack, false)
+        }
+    }
+
+
+    private fun dispatchGesture(
         gestureInfo: GestureInfo,
         gestureResultCallback: GestureResultCallback,
         immediately: Boolean) {
@@ -361,14 +396,14 @@ class GestureAccessibility : AccessibilityService(), GestureWatcher.Recorder {
     }
 
 
-    override fun onStartRecord() {
+    override fun onStartRecord(service: Service) {
         mGlobalWatcher?.onStartRecord(this)
     }
 
 
-    override fun onRecording(gestureInfo: GestureInfo) {
+    override fun onRecording(service: Service, gestureInfo: GestureInfo) {
         mGlobalWatcher?.onRecording(this, gestureInfo)
-        startGesture(
+        dispatchGesture(
             gestureInfo,
             object : GestureResultCallback() {
                 override fun onCancelled(gestureDescription: GestureDescription?) {
@@ -383,12 +418,12 @@ class GestureAccessibility : AccessibilityService(), GestureWatcher.Recorder {
 
     }
 
-    override fun onStopRecord(gestureInfoList: ArrayList<GestureInfo>) {
+    override fun onStopRecord(service: Service, gestureInfoList: ArrayList<GestureInfo>) {
         mGlobalWatcher?.onStopRecord(this, gestureInfoList)
         unbindService(mServiceConnection)
     }
 
-    override fun onCancelRecord() {
+    override fun onCancelRecord(service: Service) {
         mGlobalWatcher?.onCancelRecord(this)
         unbindService(mServiceConnection)
     }
