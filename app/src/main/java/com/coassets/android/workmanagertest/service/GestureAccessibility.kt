@@ -4,7 +4,6 @@ package com.coassets.android.workmanagertest.service
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
-import android.app.KeyguardManager
 import android.app.Service
 import android.content.ComponentName
 import android.content.Context
@@ -12,15 +11,11 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.os.Build
 import android.os.IBinder
-import android.os.PowerManager
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
-import android.view.accessibility.AccessibilityNodeInfo
 import androidx.annotation.RequiresApi
-import com.coassets.android.workmanagertest.KeyguardDismissActivity
 import com.coassets.android.workmanagertest.data.Gesture
 import com.flod.gesture.GestureInfo
-import kotlinx.coroutines.delay
 
 
 /**
@@ -52,6 +47,10 @@ class GestureAccessibility : AccessibilityService(), GestureWatcher.Recorder {
         //目前就先使用静态接口，通过接口将数据回调出去，不太好的做法，后面是否考虑别的方式
         fun setGlobalGestureWatcher(watcher: GestureWatcher.Accessibility?) {
             mGlobalWatcher = watcher
+        }
+
+        fun removeGlobalGestureWatcher(){
+            mGlobalWatcher = null
         }
 
         fun startGestures(context: Context, gestures: Gesture) {
@@ -93,18 +92,14 @@ class GestureAccessibility : AccessibilityService(), GestureWatcher.Recorder {
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
         Log.d(TAG, "onStartCommand")
 
+
+
         mMode = intent.getIntExtra(KEY_MODE, 0)
         when (mMode) {
             MODE_DISPATCH_GESTURE -> {
                 val gestures = intent.getSerializableExtra(KEY_GESTURE)
                 if (gestures is Gesture) {
-                    if (tryUnlockDevice()) {
-                        dispatchGestures(gestures.buildGestureBundle().gestureInfoList)
-                    } else {
-                        //需要执行进行解锁手势
-
-                    }
-
+                    dispatchGestures(gestures.buildGestureBundle().gestureInfoList)
                 }
             }
             //RecordGesture
@@ -119,174 +114,6 @@ class GestureAccessibility : AccessibilityService(), GestureWatcher.Recorder {
 
 
     //=============================== Gestures Part=============================================//
-
-
-    private suspend fun findLockPattern(): AccessibilityNodeInfo? {
-        var target: AccessibilityNodeInfo? = null
-        repeat(5) {
-            if (rootInActiveWindow != null) {
-                val targets =
-                    rootInActiveWindow.findAccessibilityNodeInfosByViewId("com.android.systemui:id/lockPatternView")
-
-                if (targets.isNotEmpty()) {
-                    target = targets[0]
-                    return@repeat
-                }
-            }
-            delay(timeMillis = 1000)
-        }
-        return target
-    }
-
-
-    private fun dispatchUnlockGestures() {
-
-    }
-
-
-    @Suppress("DEPRECATION")
-    private fun tryUnlockDevice(): Boolean {
-        val km = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
-        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-
-        //熄屏下亮屏
-        if (!pm.isInteractive) {
-
-            val wakeLock = pm.newWakeLock(
-                PowerManager.SCREEN_BRIGHT_WAKE_LOCK or
-                        PowerManager.ACQUIRE_CAUSES_WAKEUP, "$TAG:WakeLock")
-            //唤醒亮屏30s
-            wakeLock.acquire(30000)
-        }
-
-        //有滑动锁
-        return if (km.isKeyguardLocked) {
-            //有密码锁,需要解锁密码
-            if (km.isDeviceSecure) {
-                //解开滑动锁
-                startActivity(Intent(this@GestureAccessibility, KeyguardDismissActivity::class.java))
-                false
-            } else {
-                //解开滑动锁后直接进入
-                km.newKeyguardLock("DeviceUtil:keyguardManager").disableKeyguard()
-                true
-            }
-
-        } else {
-            true
-        }
-
-
-        //熄屏
-        /*if (!pm.isInteractive) {
-            @Suppress("DEPRECATION")
-            val wakeLock = pm.newWakeLock(
-                PowerManager.SCREEN_BRIGHT_WAKE_LOCK or
-                        PowerManager.ACQUIRE_CAUSES_WAKEUP, "$TAG:WakeLock"
-            )
-
-            //acquire 的timeout作用是如果不手动release 则以超时时间release
-            //唤醒亮屏30s
-            wakeLock.acquire(30000)
-
-
-            //有滑动锁
-            launchKeyguardDismiss()
-
-            GlobalScope.launch {
-                val two = async { findLockPattern() }
-
-                val target = two.await()
-
-                if (target != null) {
-                    val unlockGesture =
-                        (PrefsUtil.getSerializable("gesture") as Gesture)
-                    if (unlockGesture.checkOriginPoint) {
-                        val bounds = Rect()
-                        target.getBoundsInScreen(bounds)
-                        Log.d(TAG, bounds.toShortString())
-                        val offsetX = bounds.left - unlockGesture.originX
-                        val offsetY = bounds.top - unlockGesture.originY
-                        val gestureList = unlockGesture.buildGestureBundle().gestureInfoList
-                        for (item in gestureList) {
-                            item.offsetX = offsetX
-                            item.offsetY = offsetY
-                            Log.d(TAG, "offsetX:$offsetX")
-                            Log.d(TAG, "offsetY:$offsetY")
-                        }
-                        gestures.addAll(0, gestureList)
-
-                        var index = 0
-                        val callBack =
-                            object : AccessibilityService.GestureResultCallback() {
-                                override fun onCancelled(gestureDescription: GestureDescription?) {
-                                    Log.d(TAG, "onCancelled")
-                                }
-
-                                override fun onCompleted(gestureDescription: GestureDescription?) {
-                                    Log.d(TAG, "onCompleted")
-
-                                    index++
-
-                                    if (gestures.size > index) {
-                                        //startGesture(gestures[index], this, false)
-                                    } else {
-                                        index = 0
-                                    }
-
-                                }
-                            }
-
-                        startGesture(gestures[index], callBack, false)
-                    }
-                }
-
-            }
-
-
-            //有屏幕锁
-             if (km.isDeviceSecure) {
-                 //TODO 拿到屏幕解锁手势，添加到List里面
-                 val unlockGesture =
-                     (PrefsUtil.getSerializable("gesture") as Gesture)
-                 if (unlockGesture.checkOriginPoint) {
-
-                     if (rootInActiveWindow == null) {
-                         //TODO 无障碍没开
-                         return
-                     }
-
-
-                     val targets =
-                         rootInActiveWindow.findAccessibilityNodeInfosByViewId("com.android.systemui:id/lockPatternView")
-
-                     if (targets.isNotEmpty()) {
-                         val bounds = Rect()
-                         targets[0].getBoundsInScreen(bounds)
-
-                         Log.d(TAG, bounds.toShortString())
-                         val offsetX = bounds.left - unlockGesture.originX
-                         val offsetY = bounds.top - unlockGesture.originY
-                         val gestureList = unlockGesture.buildGestureBundle().gestureInfoList
-                         for (item in gestureList) {
-                             item.offsetX = offsetX
-                             item.offsetY = offsetY
-                             Log.d(TAG, "offsetX:$offsetX")
-                             Log.d(TAG, "offsetY:$offsetY")
-                         }
-                         gestures.addAll(0, gestureList)
-                     }
-
-                 }
-
-
-             }
-
-        }
-
-*/
-    }
-
 
     private fun dispatchGestures(gestures: ArrayList<GestureInfo>) {
 

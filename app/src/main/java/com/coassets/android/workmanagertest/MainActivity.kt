@@ -1,7 +1,7 @@
 package com.coassets.android.workmanagertest
 
-import android.accessibilityservice.AccessibilityService
 import android.app.Activity
+import android.app.ActivityManager
 import android.app.KeyguardManager
 import android.app.Service
 import android.content.ComponentName
@@ -9,6 +9,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.graphics.Rect
+import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
@@ -28,6 +29,7 @@ import com.coassets.android.workmanagertest.data.Gesture
 import com.coassets.android.workmanagertest.data.GestureBundle
 import com.coassets.android.workmanagertest.service.GestureAccessibility
 import com.coassets.android.workmanagertest.service.GestureWatcher
+import com.coassets.android.workmanagertest.utils.DeviceUtil
 import com.coassets.android.workmanagertest.utils.PrefsUtil
 import com.flod.gesture.GestureInfo
 import kotlinx.android.synthetic.main.activity_main.*
@@ -93,31 +95,96 @@ class MainActivity : AppCompatActivity() {
 
             // createCalendar(5)
 
-           /* view.postDelayed({
-                //startActivity(Intent(this, KeyguardDismissActivity::class.java))
-               // tryWakeUpAndUnlock(this)
+            /* view.postDelayed({
+                 //startActivity(Intent(this, KeyguardDismissActivity::class.java))
+                // tryWakeUpAndUnlock(this)
 
 
-            }, 3000)*/
+             }, 3000)*/
 
             recordGesture()
             // unlockTest()
 
         }
 
-//com.google.android.apps.chrome.Main
-        //com.android.chrome
+        val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        //activityManager.killBackgroundProcesses()
+
+
         text.setOnClickListener {
             val gesture = PrefsUtil.getSerializable("gesture") as Gesture?
             it.postDelayed({
-                /*if (gesture != null)
-                    GestureAccessibility.startGestures(this@MainActivity, gesture)*/
+                unLockGestureTest()
 
-            startActivity(getLaunchAppIntent("com.coassets.android.sg","com.coassets.android.core.activities.SplashActivity"))
-
-            }, 3000)
+            }, 5000)
         }
     }
+
+
+    fun unLockGestureTest() {
+        if (DeviceUtil.tryUnlockDevice(this)) {
+        } else {
+            //需要密码解锁
+            val unlockGesture =
+                (PrefsUtil.getSerializable("gesture") as Gesture)
+
+            val checkOffset = unlockGesture.checkOffset
+
+            GestureAccessibility.setGlobalGestureWatcher(object :
+                GestureWatcher.SimpleAccessibility() {
+                private var findTarget = true
+                private val LOCK_PATTERN_ID = "com.android.systemui:id/lockPatternView"
+
+                override fun onAccessibilityEvent(service: Service, event: AccessibilityEvent) {
+
+                    if (checkOffset && findTarget && service is GestureAccessibility) {
+                        val source = event.source ?: return
+                        val targets = source.findAccessibilityNodeInfosByViewId(LOCK_PATTERN_ID)
+                        //TODO 找不到错误完善
+                        if (targets.isNotEmpty()) {
+                            findTarget = false
+
+                            val bounds = Rect()
+                            targets[0].getBoundsInScreen(bounds)
+
+                            val offsetX = bounds.left - unlockGesture.originX
+                            val offsetY = bounds.top - unlockGesture.originY
+                            val gestureList = unlockGesture.buildGestureBundle().gestureInfoList
+                            for (item in gestureList) {
+                                item.offsetX = offsetX
+                                item.offsetY = offsetY
+                            }
+
+                            //TODO 重新保存
+                            //unlockGesture.checkOffset = false
+                            unlockGesture.gestureBundleBytes = GestureBundle(gestureList).toBytes()
+                            PrefsUtil.putSerializable("gesture", unlockGesture)
+
+
+                            GestureAccessibility.startGestures(this@MainActivity, unlockGesture)
+
+                        }
+
+                    }
+                }
+
+                override fun onGesturesComplete(service: Service) {
+                    GestureAccessibility.removeGlobalGestureWatcher()
+                }
+
+            })
+
+            if (checkOffset) {
+                GestureAccessibility.startService(this)
+            } else {
+                GestureAccessibility.startGestures(this, unlockGesture)
+            }
+
+
+        }
+
+    }
+
 
     fun getLaunchAppIntent(launchPackage: String, launchName: String): Intent {
         val intent = Intent(Intent.ACTION_MAIN)
@@ -160,7 +227,7 @@ class MainActivity : AppCompatActivity() {
             override fun onStopRecord(service: Service, gestureInfoList: ArrayList<GestureInfo>) {
                 val gesture =
                     Gesture(
-                        checkOriginPoint = true,
+                        checkOffset = true,
                         gestureBundleBytes = GestureBundle(gestureInfoList).toBytes(),
                         originX = originX, originY = originY
                     )
@@ -244,6 +311,7 @@ class MainActivity : AppCompatActivity() {
     fun confirmDeviceCredential() {
         val km = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
         val intent = km.createConfirmDeviceCredentialIntent("", "")
+        //TODO intent null
 
         startActivityForResult(intent, 0x51)
     }

@@ -89,7 +89,7 @@ data class Time(
 @Entity
 data class Gesture(
     var gestureBundleBytes: ByteArray,
-    var checkOriginPoint: Boolean = false,
+    var checkOffset: Boolean = false,
     val originX: Float = 0f, val originY: Float = 0f
 ) : Serializable {
     fun toMap(): Map<String, Any> {

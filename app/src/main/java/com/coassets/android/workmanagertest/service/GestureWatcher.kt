@@ -50,10 +50,7 @@ class GestureWatcher {
 
     open class SimpleAccessibility : Accessibility {
 
-
-
         override fun onStartRecord(service: Service) {
-
         }
 
         override fun onRecording(service: Service, gestureInfo: GestureInfo) {
