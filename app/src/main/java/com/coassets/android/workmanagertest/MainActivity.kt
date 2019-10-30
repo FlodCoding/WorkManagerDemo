@@ -103,12 +103,18 @@ class MainActivity : AppCompatActivity() {
              }, 3000)
  */
             //recordGesture()
+
+
             // unlockTest()
 
             //pinInputTest()
             // checkLockType()
 
-            checkLockType()
+            //checkLockType()
+
+
+
+            confirmDeviceCredential()
 
         }
 
@@ -121,7 +127,7 @@ class MainActivity : AppCompatActivity() {
             }, 5000)*/
 
             //activityManager.killBackgroundProcesses()
-
+            GestureAccessibility.startRecord(this@MainActivity)
         }
     }
 
@@ -155,15 +161,18 @@ class MainActivity : AppCompatActivity() {
                        /* service.performBack()
                         service.performBack()*/
                         GestureAccessibility.removeGlobalGestureWatcher()
-                        PasswordInputDialog(object :PasswordInputDialog.OnPasswordInputListener{
+
+                       /* PasswordInputFloatingWindow(this@MainActivity,object:PasswordInputFloatingWindow.OnPasswordInputListener{
                             override fun onSubmit(password: String) {
-                                //passwordEntry
+
                             }
 
                             override fun onCancel() {
-                                service.performBack()
+
                             }
-                        }).show(supportFragmentManager)
+                        }).show()*/
+                        GestureAccessibility.startRecord(this@MainActivity)
+
 
 
                         if (passwordEntry[0].inputType == (InputType.TYPE_NUMBER_VARIATION_PASSWORD or InputType.TYPE_CLASS_NUMBER)) {
@@ -180,6 +189,8 @@ class MainActivity : AppCompatActivity() {
         })
 
     }
+
+
 
 
     fun pinInputTest() {
