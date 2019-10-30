@@ -1,7 +1,6 @@
 package com.coassets.android.workmanagertest
 
 import android.app.Activity
-import android.app.ActivityManager
 import android.app.KeyguardManager
 import android.app.Service
 import android.content.ComponentName
@@ -9,11 +8,11 @@ import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.graphics.Rect
-import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.CalendarContract
+import android.text.InputType
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
@@ -23,6 +22,7 @@ import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.coassets.android.workmanagertest.data.Gesture
@@ -49,7 +49,7 @@ class MainActivity : AppCompatActivity() {
 
 
         fab.setOnClickListener { view ->
-            Toast.makeText(applicationContext, "创建", Toast.LENGTH_SHORT).show()
+            //Toast.makeText(applicationContext, "创建", Toast.LENGTH_SHORT).show()
             //addNewWork()
             // startForegroundService(Intent(this, DeskService::class.java))
             /*  Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
@@ -97,27 +97,113 @@ class MainActivity : AppCompatActivity() {
 
             /* view.postDelayed({
                  //startActivity(Intent(this, KeyguardDismissActivity::class.java))
-                // tryWakeUpAndUnlock(this)
+                 // tryWakeUpAndUnlock(this)
 
-
-             }, 3000)*/
-
-            recordGesture()
+                 pinInputTest()
+             }, 3000)
+ */
+            //recordGesture()
             // unlockTest()
 
-        }
+            //pinInputTest()
+            // checkLockType()
 
-        val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-        //activityManager.killBackgroundProcesses()
+            checkLockType()
+
+        }
 
 
         text.setOnClickListener {
-            val gesture = PrefsUtil.getSerializable("gesture") as Gesture?
+            /*val gesture = PrefsUtil.getSerializable("gesture") as Gesture?
             it.postDelayed({
                 unLockGestureTest()
 
-            }, 5000)
+            }, 5000)*/
+
+            //activityManager.killBackgroundProcesses()
+
         }
+    }
+
+
+    fun checkLockType() {
+        confirmDeviceCredential()
+        GestureAccessibility.setGlobalGestureWatcher(object : GestureWatcher.SimpleAccessibility() {
+
+            override fun onAccessibilityEvent(service: Service, event: AccessibilityEvent) {
+                val source = event.source ?: return
+                service as GestureAccessibility
+                //pin com.android.systemui:id/pinEntry
+                //pw  com.android.systemui:id/passwordEntry
+                val lockPattern =
+                    source.findAccessibilityNodeInfosByViewId("com.android.settings:id/lockPattern")
+
+                if (lockPattern.isNotEmpty()) {
+                    //Pattern
+                    service.performBack()
+
+                    GestureAccessibility.removeGlobalGestureWatcher()
+                    Toast.makeText(this@MainActivity, "Pattern", Toast.LENGTH_SHORT).show()
+                    recordGesture()
+
+
+                } else {
+                    val passwordEntry =
+                        source.findAccessibilityNodeInfosByViewId("com.android.settings:id/password_entry")
+
+                    if (passwordEntry.isNotEmpty()) {
+                       /* service.performBack()
+                        service.performBack()*/
+                        GestureAccessibility.removeGlobalGestureWatcher()
+                        PasswordInputDialog(object :PasswordInputDialog.OnPasswordInputListener{
+                            override fun onSubmit(password: String) {
+                                //passwordEntry
+                            }
+
+                            override fun onCancel() {
+                                service.performBack()
+                            }
+                        }).show(supportFragmentManager)
+
+
+                        if (passwordEntry[0].inputType == (InputType.TYPE_NUMBER_VARIATION_PASSWORD or InputType.TYPE_CLASS_NUMBER)) {
+                            //PIN
+                            Toast.makeText(this@MainActivity, "PIN", Toast.LENGTH_SHORT).show()
+                        } else {
+                            //Password
+                            Toast.makeText(this@MainActivity, "Password", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+
+        })
+
+    }
+
+
+    fun pinInputTest() {
+        //confirmDeviceCredential()
+
+        GestureAccessibility.startService(this)
+        GestureAccessibility.setGlobalGestureWatcher(object : GestureWatcher.SimpleAccessibility() {
+
+            override fun onAccessibilityEvent(service: Service, event: AccessibilityEvent) {
+                val source = event.source ?: return
+
+                //pin com.android.systemui:id/pinEntry
+                //pw  com.android.systemui:id/passwordEntry
+                val targets =
+                    source.findAccessibilityNodeInfosByViewId("com.android.systemui:id/passwordEntry")
+                if (targets.isNotEmpty()) {
+                    val arguments = Bundle()
+                    arguments.putString(AccessibilityNodeInfoCompat.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, "qwer")
+                    targets[0].performAction(AccessibilityNodeInfoCompat.ACTION_SET_TEXT, arguments)
+
+                }
+            }
+
+        })
     }
 
 
@@ -275,6 +361,8 @@ class MainActivity : AppCompatActivity() {
     fun tryWakeUpAndUnlock(context: Context) {
         val km = context.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
         val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+
+
         //如果时熄屏,唤醒屏幕
         if (!pm.isInteractive) {
             val wakeLock = pm.newWakeLock(

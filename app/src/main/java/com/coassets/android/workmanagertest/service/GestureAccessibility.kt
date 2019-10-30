@@ -49,7 +49,7 @@ class GestureAccessibility : AccessibilityService(), GestureWatcher.Recorder {
             mGlobalWatcher = watcher
         }
 
-        fun removeGlobalGestureWatcher(){
+        fun removeGlobalGestureWatcher() {
             mGlobalWatcher = null
         }
 
@@ -91,8 +91,6 @@ class GestureAccessibility : AccessibilityService(), GestureWatcher.Recorder {
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
         Log.d(TAG, "onStartCommand")
-
-
 
         mMode = intent.getIntExtra(KEY_MODE, 0)
         when (mMode) {
@@ -268,5 +266,9 @@ class GestureAccessibility : AccessibilityService(), GestureWatcher.Recorder {
         mGlobalWatcher?.onAccessibilityEvent(this, event)
     }
 
+
+    fun performBack() {
+        performGlobalAction(GLOBAL_ACTION_BACK)
+    }
 
 }

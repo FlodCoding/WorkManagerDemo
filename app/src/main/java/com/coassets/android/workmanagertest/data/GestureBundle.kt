@@ -4,6 +4,7 @@ import android.os.Parcel
 import android.os.Parcelable
 import com.coassets.android.workmanagertest.utils.ParcelableUtil
 import com.flod.gesture.GestureInfo
+import java.io.Serializable
 
 /**
  * SimpleDes:
@@ -14,7 +15,7 @@ import com.flod.gesture.GestureInfo
  */
 
 class GestureBundle(
-        val gestureInfoList: ArrayList<GestureInfo>) : Parcelable {
+    val gestureInfoList: ArrayList<GestureInfo>) : Parcelable, Serializable {
     constructor(parcel: Parcel) : this(parcel.createTypedArrayList(GestureInfo.CREATOR)!!)
 
 
@@ -41,13 +42,10 @@ class GestureBundle(
     }
 
 
-
     fun toBytes(): ByteArray {
 
         return ParcelableUtil.marshall(this)
     }
-
-
 
 
 }

@@ -5,7 +5,6 @@ package com.coassets.android.workmanagertest.data
 import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import androidx.room.TypeConverters
 import java.io.Serializable
 
 
@@ -16,7 +15,6 @@ import java.io.Serializable
  * UseDes:
  */
 @Entity
-@TypeConverters(Converter::class)
 data class Task(
     @PrimaryKey(autoGenerate = true)
     var id: Long = 0,
@@ -104,6 +102,5 @@ data class Gesture(
 
 }
 
-class Converter {
 
-}
+
