@@ -20,7 +20,6 @@ import com.coassets.android.workmanagertest.R
 import com.flod.gesture.GestureCatchView
 import com.flod.gesture.GestureInfo
 import com.flod.gesture.GestureType
-
 import kotlinx.android.synthetic.main.layout_record_btn.view.*
 
 /**
@@ -149,6 +148,7 @@ class GestureRecorderService : Service() {
 
 
     override fun onBind(intent: Intent?): IBinder? {
+        //TODO focus
         windowManager.addView(gestureView, gestureViewParams)
         windowManager.addView(recordBtn, recordBtn.windowLayoutParams)
         return IGestureRecordBinder()
@@ -191,12 +191,12 @@ class GestureRecorderService : Service() {
             gestureViewParams.flags = WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
                     WindowManager.LayoutParams.FLAG_FULLSCREEN or
                     WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
-            gestureView.alpha = 0f
+            //gestureView.alpha = 0f
         } else {
             gestureViewParams.flags = WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
                     WindowManager.LayoutParams.FLAG_FULLSCREEN or
                     WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
-            gestureView.alpha = 0.4f
+            //gestureView.alpha = 0.4f
         }
         windowManager.updateViewLayout(gestureView, gestureViewParams)
     }

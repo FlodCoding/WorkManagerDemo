@@ -108,8 +108,10 @@ class MainActivity : AppCompatActivity() {
             //pinInputTest()
             // checkLockType()
 
-            checkLockType()
+          //checkLockType()
 
+            confirmDeviceCredential()
+            GestureAccessibility.startRecord(this)
         }
 
 
