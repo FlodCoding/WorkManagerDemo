@@ -39,7 +39,7 @@ class PasswordInputDialog constructor(private val onPasswordInputListener: OnPas
 
         val fabDone = root.fabDone
         val etInput = root.etInput
-        
+
         fabDone.setOnClickListener {
             onPasswordInputListener.onSubmit(etInput.text.toString())
             dismiss()

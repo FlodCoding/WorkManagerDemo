@@ -27,14 +27,14 @@ class MovableLayout @JvmOverloads constructor(context: Context, attrs: Attribute
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             windowLayoutParams.type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
         } else {
-            windowLayoutParams.type = WindowManager.LayoutParams.TYPE_TOAST;
+            windowLayoutParams.type = WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY
         }
         windowLayoutParams.format = PixelFormat.RGBA_8888
         windowLayoutParams.width = WindowManager.LayoutParams.WRAP_CONTENT
         windowLayoutParams.height = WindowManager.LayoutParams.WRAP_CONTENT
         windowLayoutParams.gravity = Gravity.END
         windowLayoutParams.y = 500
-        windowLayoutParams.flags = WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+        windowLayoutParams.flags = WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or  WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
     }
 
 

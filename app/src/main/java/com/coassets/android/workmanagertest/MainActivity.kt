@@ -12,6 +12,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.CalendarContract
+import android.provider.Settings
 import android.text.InputType
 import android.util.Log
 import android.view.Menu
@@ -19,7 +20,6 @@ import android.view.MenuItem
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
-import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
@@ -44,6 +44,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         setSupportActionBar(toolbar)
+
+        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
 
         PrefsUtil.init(application)
 
@@ -113,8 +115,8 @@ class MainActivity : AppCompatActivity() {
             //checkLockType()
 
 
-
-            confirmDeviceCredential()
+            //confirmDeviceCredential()
+            GestureAccessibility.startRecord(this@MainActivity)
 
         }
 
@@ -127,12 +129,17 @@ class MainActivity : AppCompatActivity() {
             }, 5000)*/
 
             //activityManager.killBackgroundProcesses()
-            GestureAccessibility.startRecord(this@MainActivity)
+            //GestureAccessibility.startRecord(this@MainActivity)
+            checkLockType{
+
+            }
         }
+
+
     }
 
 
-    fun checkLockType() {
+    fun checkLockType(block: (Int) -> Unit) {
         confirmDeviceCredential()
         GestureAccessibility.setGlobalGestureWatcher(object : GestureWatcher.SimpleAccessibility() {
 
@@ -143,45 +150,19 @@ class MainActivity : AppCompatActivity() {
                 //pw  com.android.systemui:id/passwordEntry
                 val lockPattern =
                     source.findAccessibilityNodeInfosByViewId("com.android.settings:id/lockPattern")
-
-                if (lockPattern.isNotEmpty()) {
-                    //Pattern
+                val passwordEntry =
+                    source.findAccessibilityNodeInfosByViewId("com.android.settings:id/password_entry")
+                if (lockPattern.isNotEmpty() || passwordEntry.isNotEmpty()) {
                     service.performBack()
-
                     GestureAccessibility.removeGlobalGestureWatcher()
-                    Toast.makeText(this@MainActivity, "Pattern", Toast.LENGTH_SHORT).show()
-                    recordGesture()
-
-
-                } else {
-                    val passwordEntry =
-                        source.findAccessibilityNodeInfosByViewId("com.android.settings:id/password_entry")
-
-                    if (passwordEntry.isNotEmpty()) {
-                       /* service.performBack()
-                        service.performBack()*/
-                        GestureAccessibility.removeGlobalGestureWatcher()
-
-                       /* PasswordInputFloatingWindow(this@MainActivity,object:PasswordInputFloatingWindow.OnPasswordInputListener{
-                            override fun onSubmit(password: String) {
-
-                            }
-
-                            override fun onCancel() {
-
-                            }
-                        }).show()*/
-                        GestureAccessibility.startRecord(this@MainActivity)
-
-
-
-                        if (passwordEntry[0].inputType == (InputType.TYPE_NUMBER_VARIATION_PASSWORD or InputType.TYPE_CLASS_NUMBER)) {
-                            //PIN
-                            Toast.makeText(this@MainActivity, "PIN", Toast.LENGTH_SHORT).show()
-                        } else {
-                            //Password
-                            Toast.makeText(this@MainActivity, "Password", Toast.LENGTH_SHORT).show()
+                    when {
+                        lockPattern.isNotEmpty() -> block(0)
+                        passwordEntry.isNotEmpty() -> {
+                            val isPin =
+                                passwordEntry[0].inputType == (InputType.TYPE_NUMBER_VARIATION_PASSWORD or InputType.TYPE_CLASS_NUMBER)
+                            if (isPin) block(1) else block(2)
                         }
+
                     }
                 }
             }
@@ -409,6 +390,7 @@ class MainActivity : AppCompatActivity() {
 
     fun confirmDeviceCredential() {
         val km = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+
         val intent = km.createConfirmDeviceCredentialIntent("", "")
         //TODO intent null
 
