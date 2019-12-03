@@ -40,10 +40,10 @@ class PasswordInputFloatingWindow(context: Context, onPasswordInputListener: OnP
         val fabDone = rootView.fabDone
         val etInput = rootView.etInput
 
-        rootView.container.setOnClickListener {
+        /*rootView.container.setOnClickListener {
             dismiss()
             onPasswordInputListener.onCancel()
-        }
+        }*/
 
         rootView.addOnUnhandledKeyEventListener { v, event ->
             if (event.keyCode == KeyEvent.KEYCODE_BACK) {

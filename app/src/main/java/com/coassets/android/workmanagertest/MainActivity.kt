@@ -1,5 +1,6 @@
 package com.coassets.android.workmanagertest
 
+import android.accessibilityservice.GestureDescription
 import android.app.Activity
 import android.app.KeyguardManager
 import android.app.Service
@@ -12,7 +13,6 @@ import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.CalendarContract
-import android.provider.Settings
 import android.text.InputType
 import android.util.Log
 import android.view.Menu
@@ -20,6 +20,7 @@ import android.view.MenuItem
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
@@ -116,7 +117,9 @@ class MainActivity : AppCompatActivity() {
 
 
             //confirmDeviceCredential()
-            GestureAccessibility.startRecord(this@MainActivity)
+            // GestureAccessibility.startRecord(this@MainActivity)
+
+
 
         }
 
@@ -130,9 +133,22 @@ class MainActivity : AppCompatActivity() {
 
             //activityManager.killBackgroundProcesses()
             //GestureAccessibility.startRecord(this@MainActivity)
-            checkLockType{
+           /* checkLockType{
+                Toast.makeText(this@MainActivity, "Type$it", Toast.LENGTH_LONG).show()
 
-            }
+            }*/
+            PasswordInputDialog(object :
+                PasswordInputDialog.OnPasswordInputListener {
+                override fun onSubmit(password: String) {
+                    pinInputTest(password)
+                }
+
+                override fun onCancel() {
+
+                }
+
+
+            }).show(supportFragmentManager)
         }
 
 
@@ -158,6 +174,7 @@ class MainActivity : AppCompatActivity() {
                     when {
                         lockPattern.isNotEmpty() -> block(0)
                         passwordEntry.isNotEmpty() -> {
+                            service.performBack()
                             val isPin =
                                 passwordEntry[0].inputType == (InputType.TYPE_NUMBER_VARIATION_PASSWORD or InputType.TYPE_CLASS_NUMBER)
                             if (isPin) block(1) else block(2)
@@ -174,23 +191,36 @@ class MainActivity : AppCompatActivity() {
 
 
 
-    fun pinInputTest() {
-        //confirmDeviceCredential()
-
+    fun pinInputTest(string: String) {
+        confirmDeviceCredential()
         GestureAccessibility.startService(this)
         GestureAccessibility.setGlobalGestureWatcher(object : GestureWatcher.SimpleAccessibility() {
 
             override fun onAccessibilityEvent(service: Service, event: AccessibilityEvent) {
                 val source = event.source ?: return
+                service as GestureAccessibility
 
                 //pin com.android.systemui:id/pinEntry
                 //pw  com.android.systemui:id/passwordEntry
+
+                val lockPattern =
+                    source.findAccessibilityNodeInfosByViewId("com.android.settings:id/lockPattern")
+                if (lockPattern.isNotEmpty()){
+                    Toast.makeText(this@MainActivity, "暂时不支持图案解锁，请更换为密码吧!", Toast.LENGTH_LONG).show()
+
+                    service.performBack()
+                }
+
+
                 val targets =
-                    source.findAccessibilityNodeInfosByViewId("com.android.systemui:id/passwordEntry")
+                    source.findAccessibilityNodeInfosByViewId("com.android.settings:id/password_entry")
+
                 if (targets.isNotEmpty()) {
                     val arguments = Bundle()
-                    arguments.putString(AccessibilityNodeInfoCompat.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, "qwer")
+                    arguments.putString(AccessibilityNodeInfoCompat.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, string)
                     targets[0].performAction(AccessibilityNodeInfoCompat.ACTION_SET_TEXT, arguments)
+
+                    //
 
                 }
             }
